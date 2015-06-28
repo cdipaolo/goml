@@ -3,6 +3,7 @@ box: golang
 build:
   # The steps that will be executed on build
   steps:
+    - wercker/setup-go-workspace@1.2.1
     - wercker/golint@1.2.0
     
     # Get dependencies
