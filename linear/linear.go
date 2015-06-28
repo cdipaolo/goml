@@ -38,14 +38,13 @@ type LeastSquares struct {
 // set trainingSet, and the expected results upon which to
 // use the dataset to train, expectedResults.
 func NewLeastSquares(alpha float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares {
-    var params []float64
-    if trainingSet == nil || len(trainingSet) == 0 {
-        params = []float64{}
-    } else {
-        params = make([]float64, len((trainingSet)[0])+1)
-    }
-    
-    
+	var params []float64
+	if trainingSet == nil || len(trainingSet) == 0 {
+		params = []float64{}
+	} else {
+		params = make([]float64, len((trainingSet)[0])+1)
+	}
+
 	return &LeastSquares{
 		alpha:         alpha,
 		maxIterations: maxIterations,
@@ -120,12 +119,12 @@ func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
 // batch gradient descent on them, optimizing theta so you can
 // predict based on those results
 func (l *LeastSquares) Learn() error {
-    if l.trainingSet == nil || l.expectedResults == nil {
-        err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
+	if l.trainingSet == nil || l.expectedResults == nil {
+		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
 		fmt.Printf(err.Error())
 		return err
-    }
-    
+	}
+
 	examples := len(l.trainingSet)
 	if examples == 0 || len(l.trainingSet[0]) == 0 {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
@@ -237,7 +236,7 @@ func (l *LeastSquares) Theta() []float64 {
 //
 // The data is stored as JSON because it's one of the most
 // efficient storage method (you only need one comma extra
-// per feature + two brackets, total!)
+// per feature + two brackets, total!) And it's extendable.
 func (l *LeastSquares) PersistToFile(path string) error {
 	if path == "" {
 		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath!")

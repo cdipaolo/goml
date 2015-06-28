@@ -41,10 +41,10 @@ type Ascendable interface {
 	// Theta returns a pointer to the parameter vector
 	// theta, which is 1D vector of floats
 	Theta() []float64
-    
-    // MaxIterations returns the maximum number of
-    // iterations to try using gradient ascent. Might
-    // return after less if strong convergance is
-    // detected, but it'll let the user set a cap.
-    MaxIterations() int
+
+	// MaxIterations returns the maximum number of
+	// iterations to try using gradient ascent. Might
+	// return after less if strong convergance is
+	// detected, but it'll let the user set a cap.
+	MaxIterations() int
 }

@@ -1,9 +1,9 @@
 package linear
 
 import (
+	"fmt"
+	"os"
 	"testing"
-    "os"
-    "fmt"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,14 +26,14 @@ var threeDLineX [][]float64
 var threeDLineY []float64
 
 func init() {
-    
-    // create the /tmp/.goml/ dir for persistance testing
-    // if it doesn't already exist!
-    err := os.MkdirAll("/tmp/.goml", os.ModePerm)
-    if err != nil {
-        panic(fmt.Sprintf("You should be able to create the directory for goml model persistance testing.\n\tError returned: %v\n", err.Error()))
-    }
-    
+
+	// create the /tmp/.goml/ dir for persistance testing
+	// if it doesn't already exist!
+	err := os.MkdirAll("/tmp/.goml", os.ModePerm)
+	if err != nil {
+		panic(fmt.Sprintf("You should be able to create the directory for goml model persistance testing.\n\tError returned: %v\n", err.Error()))
+	}
+
 	// the line y=3
 	flatX = [][]float64{}
 	flatY = []float64{}
@@ -134,8 +134,8 @@ func TestFlatLineShouldFail3(t *testing.T) {
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
-    
-    model = NewLeastSquares(1, 800, [][]float64{[]float64{}, []float64{}}, flatY)
+
+	model = NewLeastSquares(1, 800, [][]float64{[]float64{}, []float64{}}, flatY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
