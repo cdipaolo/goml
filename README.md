@@ -1,6 +1,8 @@
 ## `goml`
 ### Golang Machine Learning
 
+[![wercker status](https://app.wercker.com/status/50a8cfa6170784809e3308941212cef4/s "wercker status")](https://app.wercker.com/project/bykey/50a8cfa6170784809e3308941212cef4)
+
 goml (pronounced like the data format 'toml') is a batteries included machine learning library written entirely in Golang. It lets you create models of data stored as float64's, persist them to disk, and predict other values from them.
 
 You could use the `golearn` package @sjwhitworth wrote, but mine has kind error messages! :smile:. On a more serious note, I'm making this library to learn about machine learning. It works, don't misunderstand, and due to that the code is really well commented and structured for ease of extension in case you want to write a more individual model (in many of those cases I'd hope you made it into a pull request as well.)
