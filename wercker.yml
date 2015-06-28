@@ -1,0 +1,26 @@
+box: golang
+
+build:
+    # The steps that will be executed on build
+    # Get dependencies
+    - wercker/golint
+    - wercker/govet
+
+    - script:
+        name: go get
+        code: |
+          go get github.com/stretchr/testify/assert
+          go get -v -t ./...
+
+    # Build the project
+    - script:
+        name: go build
+        code: |
+          go build -v
+          ls -asFl ./
+
+    # Test the project
+    - script:
+        name: go test
+        code: |
+          go test -v ./...
