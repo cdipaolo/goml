@@ -19,8 +19,8 @@ type LeastSquares struct {
 	// trainingSet and expectedResults are the
 	// 'x', and 'y' of the data, expressed as
 	// vectors, that the model can optimize from
-	trainingSet     *[][]float64
-	expectedResults *[]float64
+	trainingSet     [][]float64
+	expectedResults []float64
 
 	Parameters []float64 `json:"theta"`
 }
@@ -29,10 +29,13 @@ type LeastSquares struct {
 // initialized with the learning rate alpha, the training
 // set trainingSet, and the expected results upon which to
 // use the dataset to train, expectedResults.
-func NewLeastSquares(alpha float64, trainingSet *[][]float64, expectedResults *[]float64) (*LeastSquares, error) {
-	if len(*trainingSet) == 0 {
+func NewLeastSquares(alpha float64, trainingSet [][]float64, expectedResults []float64) (*LeastSquares, error) {
+	if len(trainingSet) == 0 {
 		return nil, fmt.Errorf("Error: length of given training set is 0! Need data!")
-	}
+    }
+    if len(expectedResults) == 0 {
+        return nil, fmt.Errorf("Error: length of given result data set is 0! Need expected results!")
+    }
 
 	return &LeastSquares{
 		alpha:           alpha,
@@ -41,8 +44,27 @@ func NewLeastSquares(alpha float64, trainingSet *[][]float64, expectedResults *[
 
 		// initialize θ as the zero vector (that is,
 		// the vector of all zeros)
-		Parameters: make([]float64, len((*trainingSet)[0])+1),
+		Parameters: make([]float64, len((trainingSet)[0])+1),
 	}, nil
+}
+
+// UpdateTrainingSet takes in a new training set (variable x)
+// as well as a new result set (y). This could be useful if
+// you want to retrain a model starting with the parameter
+// vector of a previous training session, but most of the time
+// wouldn't be used.
+func (l *LeastSquares) UpdateTrainingSet(trainingSet [][]float64, expectedResults []float64) error {
+	if len(trainingSet) == 0 {
+		return fmt.Errorf("Error: length of given training set is 0! Need data!")
+    }
+    if len(expectedResults) == 0 {
+        return fmt.Errorf("Error: length of given result data set is 0! Need expected results!")
+    }
+    
+    l.trainingSet = trainingSet
+    l.expectedResults = expectedResults
+    
+    return nil
 }
 
 // LearningRate returns the learning rate α for gradient
@@ -55,9 +77,9 @@ func (l *LeastSquares) LearningRate() float64 {
 // Predict takes in a variable x (an array of floats,) and
 // finds the value of the hypothesis function given the
 // current parameter vector θ
-func (l *LeastSquares) Predict(x []float64) (float64, error) {
+func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
 	if len(x)+1 != len(l.Parameters) {
-		return 0, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v", len(x), len(l.Parameters))
+		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v", len(x), len(l.Parameters))
 	}
 
 	// include constant term in sum
@@ -67,27 +89,30 @@ func (l *LeastSquares) Predict(x []float64) (float64, error) {
 		sum += x[i] * l.Parameters[i+1]
 	}
 
-	return sum, nil
+    return []float64{sum}, nil
 }
 
 // Learn takes the struct's dataset and expected results and runs
 // batch gradient descent on them, optimizing theta so you can
 // predict based on those results
-func (l *LeastSquares) Learn() {
-	examples := len(*l.trainingSet)
+func (l *LeastSquares) Learn() error {
+	examples := len(l.trainingSet)
 	if examples == 0 {
-		fmt.Printf("\nERROR: Attempting to learn with no training examples!\n\n")
-		return
+        err := fmt.Errorf("ERROR: Attempting to learn with no training examples!")
+		fmt.Printf(err.Error())
+		return err
 	}
 
-	fmt.Printf("Training:\n\tModel: Linear Least Squares\n\tOptimization Method: Batch Gradient Descent\n\tTraining Examples: %v\n\tFeatures: %v\n...\n\n", examples, len((*l.trainingSet)[0]))
+	fmt.Printf("Training:\n\tModel: Linear Least Squares\n\tOptimization Method: Batch Gradient Descent\n\tTraining Examples: %v\n\tFeatures: %v\n...\n\n", examples, len(l.trainingSet[0]))
 
-	err := base.GradientDescent(l)
+	err := base.GradientAscent(l)
 	if err != nil {
-		fmt.Printf("\nERROR: Error while learing –\n\t%v\n\n", err)
+		fmt.Printf("\nERROR: Error while learning –\n\t%v\n\n", err)
+        return err
 	}
 
 	fmt.Printf("Training Completed.\n%v\n\n", l)
+    return nil
 }
 
 // String implements the fmt interface for clean printing. Here
@@ -102,7 +127,8 @@ func (l *LeastSquares) String() string {
 
 	buffer.WriteString(fmt.Sprintf("h(θ) = %.3f + ", l.Parameters[0]))
 
-	for i := 1; i < features+1; i++ {
+    length := features+1
+	for i := 1; i < length; i++ {
 		buffer.WriteString(fmt.Sprintf("%.3f(x[%d])", l.Parameters[i], i))
 
 		if i != features {
@@ -118,16 +144,28 @@ func (l *LeastSquares) String() string {
 // associated with our hypothesis function Predict (upon which
 // we are optimizing
 func (l *LeastSquares) Dj(j int) (float64, error) {
-	// use batch method
+    if j > len(l.Parameters) - 1 {
+        return 0, fmt.Errorf("J (%v) would index out of the bounds of the training set data (len: %v)", j, len(l.Parameters))
+    }
+
 	var sum float64
 
-	for i := range *l.trainingSet {
-		prediction, err := l.Predict((*l.trainingSet)[i])
+	for i := range l.trainingSet {
+		prediction, err := l.Predict(l.trainingSet[i])
 		if err != nil {
 			return 0, err
 		}
 
-		sum += ((*l.expectedResults)[i] - prediction) * (*l.trainingSet)[i][j]
+        // account for constant term
+        // x is x[i][j] via Andrew Ng's terminology
+        var x float64
+        if j == 0 {
+            x = 1
+        } else {
+            x = l.trainingSet[i][j-1]
+        }
+        
+		sum += (l.expectedResults[i] - prediction[0]) * x
 	}
 
 	return sum, nil
@@ -138,13 +176,13 @@ func (l *LeastSquares) Dj(j int) (float64, error) {
 func (l *LeastSquares) J() (float64, error) {
 	var sum float64
 
-	for i := range *l.trainingSet {
-		prediction, err := l.Predict((*l.trainingSet)[i])
+	for i := range l.trainingSet {
+		prediction, err := l.Predict(l.trainingSet[i])
 		if err != nil {
 			return 0, err
 		}
 
-		sum += ((*l.expectedResults)[i] - prediction) * ((*l.expectedResults)[i] - prediction)
+		sum += (l.expectedResults[i] - prediction[0]) * (l.expectedResults[i] - prediction[0])
 	}
 
 	return sum / 2, nil
@@ -153,6 +191,6 @@ func (l *LeastSquares) J() (float64, error) {
 // Theta returns the parameter vector θ for use in persisting
 // the model, and optimizing the model through gradient descent
 // ( or other methods like Newton's Method)
-func (l *LeastSquares) Theta() *[]float64 {
-	return &l.Parameters
+func (l *LeastSquares) Theta() []float64 {
+	return l.Parameters
 }

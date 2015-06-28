@@ -7,14 +7,23 @@ package base
 // returns a real number response (float, again)
 // and an error if any
 type Model interface {
-	Predict([]float64) (float64, error)
-	Learn()
+	Predict([]float64) ([]float64, error)
+	Learn() error
+
+	// PersistToFile and RestoreFromFile both take
+	// in paths (absolute paths!) to files and
+	// persists the necessary data to the filepath
+	// such that you can RestoreFromFile later and
+	// have the same instance. Helpful when you want
+	// to train a model, save it to a file, then
+	// open it later for prediction
+	PersistToFile(string) error
+	RestoreFromFile(string) error
 }
 
-// Descendable is an interface that can be used
+// Ascendable is an interface that can be used
 // with stochastic and/or batch gradient descent.
-//
-type Descendable interface {
+type Ascendable interface {
 	// LearningRate returns the learning rate α
 	// to be used in Gradient Descent as the
 	// modifier term
@@ -31,5 +40,5 @@ type Descendable interface {
 
 	// Theta returns a pointer to the parameter vector
 	// theta, which is 1D vector of floats
-	Theta() *[]float64
+	Theta() []float64
 }
