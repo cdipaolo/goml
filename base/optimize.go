@@ -1,59 +1,56 @@
 package base
+
 import (
-    "fmt"
-    "math"
-    )
-
-
-// abs = |x|
-func abs(x float64) float64 {
-    if x < 0 {
-        return -1 * x
-    }
-    
-    return x
-}
+	"fmt"
+	"math"
+)
 
 // GradientAscent operates on a Descendable model and
-// further optimizes the parameter vector theta of the
+// further optimizes the parameter vector Theta of the
 // model, which is then used within the Predict function
 func GradientAscent(d Ascendable) error {
-	theta := d.Theta()
-	rate := d.LearningRate()
-    fmt.Printf("Theta: %v\nAlpha: %v\n\n", theta, rate)
+	Theta := d.Theta()
+	Alpha := d.LearningRate()
+	MaxIterations := d.MaxIterations()
+    
+    // if the iterations given is 0, set it to be 
+    // 5000 (seems reasonable base value)
+    if MaxIterations == 0 {
+        MaxIterations = 5000
+    }
 
 	J, err := d.J()
 	if err != nil {
 		return err
 	}
-    costHistory := []float64{J}
-    features := len(theta)
-    
-	for iter := 0; iter < 1000 && !math.IsInf(J, 0); iter++ {
+	var iter int
+	features := len(Theta)
+
+	// Stop iterating if the number of iterations exceeds
+	// the limit, or if the cost function is infinite.
+	for ; iter < MaxIterations && !math.IsInf(J, 0); iter++ {
 		newTheta := make([]float64, features)
-		for j := range theta {
+		for j := range Theta {
 			dj, err := d.Dj(j)
 			if err != nil {
 				return err
 			}
-            //fmt.Printf("Dj: %v\trate*Dj: %v\ttheta[j]: %v\n", dj, rate*dj, theta[j])
 
-			newTheta[j] = theta[j] + rate*dj
+			newTheta[j] = Theta[j] + Alpha*dj
 		}
-        
-        // now simultaneously update theta
-        for j := range theta {
-            theta[j] = newTheta[j]
-        }
+
+		// now simultaneously update Theta
+		for j := range Theta {
+			Theta[j] = newTheta[j]
+		}
 
 		J, err = d.J()
 		if err != nil {
 			return err
 		}
-        
-        costHistory = append(costHistory, J)
 	}
-    fmt.Printf("Cost History: \n%v\n\n", costHistory)
+
+	fmt.Printf("Went through %v iterations.\n", iter+1)
 
 	return nil
 }

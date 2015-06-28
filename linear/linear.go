@@ -14,7 +14,12 @@ import (
 //
 // The model uses gradient descent, NOT regular equations.
 type LeastSquares struct {
-	alpha float64
+	// alpha and maxIterations are used only for
+	// GradientAscent during learning. If maxIterations
+    // is 0, then GradientAscent will run until the
+    // algorithm detects convergance
+	alpha         float64
+	maxIterations int
 
 	// trainingSet and expectedResults are the
 	// 'x', and 'y' of the data, expressed as
@@ -29,16 +34,18 @@ type LeastSquares struct {
 // initialized with the learning rate alpha, the training
 // set trainingSet, and the expected results upon which to
 // use the dataset to train, expectedResults.
-func NewLeastSquares(alpha float64, trainingSet [][]float64, expectedResults []float64) (*LeastSquares, error) {
+func NewLeastSquares(alpha float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) (*LeastSquares, error) {
 	if len(trainingSet) == 0 {
 		return nil, fmt.Errorf("Error: length of given training set is 0! Need data!")
-    }
-    if len(expectedResults) == 0 {
-        return nil, fmt.Errorf("Error: length of given result data set is 0! Need expected results!")
-    }
+	}
+	if len(expectedResults) == 0 {
+		return nil, fmt.Errorf("Error: length of given result data set is 0! Need expected results!")
+	}
 
 	return &LeastSquares{
-		alpha:           alpha,
+		alpha:         alpha,
+		maxIterations: maxIterations,
+
 		trainingSet:     trainingSet,
 		expectedResults: expectedResults,
 
@@ -56,15 +63,21 @@ func NewLeastSquares(alpha float64, trainingSet [][]float64, expectedResults []f
 func (l *LeastSquares) UpdateTrainingSet(trainingSet [][]float64, expectedResults []float64) error {
 	if len(trainingSet) == 0 {
 		return fmt.Errorf("Error: length of given training set is 0! Need data!")
-    }
-    if len(expectedResults) == 0 {
-        return fmt.Errorf("Error: length of given result data set is 0! Need expected results!")
-    }
-    
-    l.trainingSet = trainingSet
-    l.expectedResults = expectedResults
-    
-    return nil
+	}
+	if len(expectedResults) == 0 {
+		return fmt.Errorf("Error: length of given result data set is 0! Need expected results!")
+	}
+
+	l.trainingSet = trainingSet
+	l.expectedResults = expectedResults
+
+	return nil
+}
+
+// UpdateLearningRate set's the learning rate of the model
+// to the given float64.
+func (l *LeastSquares) UpdateLearningRate(a float64) {
+	l.alpha = a
 }
 
 // LearningRate returns the learning rate α for gradient
@@ -72,6 +85,13 @@ func (l *LeastSquares) UpdateTrainingSet(trainingSet [][]float64, expectedResult
 // of something else later, potentially.
 func (l *LeastSquares) LearningRate() float64 {
 	return l.alpha
+}
+
+// MaxIterations returns the number of maximum iterations
+// the model will go through in GradientAscent, in the
+// worst case
+func (l *LeastSquares) MaxIterations() int {
+    return l.maxIterations
 }
 
 // Predict takes in a variable x (an array of floats,) and
@@ -89,7 +109,7 @@ func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
 		sum += x[i] * l.Parameters[i+1]
 	}
 
-    return []float64{sum}, nil
+	return []float64{sum}, nil
 }
 
 // Learn takes the struct's dataset and expected results and runs
@@ -98,7 +118,7 @@ func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
 func (l *LeastSquares) Learn() error {
 	examples := len(l.trainingSet)
 	if examples == 0 {
-        err := fmt.Errorf("ERROR: Attempting to learn with no training examples!")
+		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!")
 		fmt.Printf(err.Error())
 		return err
 	}
@@ -108,11 +128,11 @@ func (l *LeastSquares) Learn() error {
 	err := base.GradientAscent(l)
 	if err != nil {
 		fmt.Printf("\nERROR: Error while learning –\n\t%v\n\n", err)
-        return err
+		return err
 	}
 
 	fmt.Printf("Training Completed.\n%v\n\n", l)
-    return nil
+	return nil
 }
 
 // String implements the fmt interface for clean printing. Here
@@ -127,9 +147,9 @@ func (l *LeastSquares) String() string {
 
 	buffer.WriteString(fmt.Sprintf("h(θ) = %.3f + ", l.Parameters[0]))
 
-    length := features+1
+	length := features + 1
 	for i := 1; i < length; i++ {
-		buffer.WriteString(fmt.Sprintf("%.3f(x[%d])", l.Parameters[i], i))
+		buffer.WriteString(fmt.Sprintf("%.5f(x[%d])", l.Parameters[i], i))
 
 		if i != features {
 			buffer.WriteString(fmt.Sprintf(" + "))
@@ -144,9 +164,9 @@ func (l *LeastSquares) String() string {
 // associated with our hypothesis function Predict (upon which
 // we are optimizing
 func (l *LeastSquares) Dj(j int) (float64, error) {
-    if j > len(l.Parameters) - 1 {
-        return 0, fmt.Errorf("J (%v) would index out of the bounds of the training set data (len: %v)", j, len(l.Parameters))
-    }
+	if j > len(l.Parameters)-1 {
+		return 0, fmt.Errorf("J (%v) would index out of the bounds of the training set data (len: %v)", j, len(l.Parameters))
+	}
 
 	var sum float64
 
@@ -156,15 +176,15 @@ func (l *LeastSquares) Dj(j int) (float64, error) {
 			return 0, err
 		}
 
-        // account for constant term
-        // x is x[i][j] via Andrew Ng's terminology
-        var x float64
-        if j == 0 {
-            x = 1
-        } else {
-            x = l.trainingSet[i][j-1]
-        }
-        
+		// account for constant term
+		// x is x[i][j] via Andrew Ng's terminology
+		var x float64
+		if j == 0 {
+			x = 1
+		} else {
+			x = l.trainingSet[i][j-1]
+		}
+
 		sum += (l.expectedResults[i] - prediction[0]) * x
 	}
 
