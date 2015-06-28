@@ -3,6 +3,10 @@
 
 This part of the `goml` package implements varied generalized linear models using gradient descent (currently, though more options for optimization methods might be available in the future.)
 
+### implemented models
+
+- ordinary least squares
+
 ### example ordinary least squares
 
 this is mostly from from the `linear_test.go` tests. You can find more examples from the testing files. The line given is `z = 10 + (x/10) + (y/5)`
