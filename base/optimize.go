@@ -49,6 +49,10 @@ func GradientAscent(d Ascendable) error {
 			return err
 		}
 	}
+    
+    if math.IsInf(J, 0) || math.IsNaN(J) {
+        return fmt.Errorf("ERROR: Learning diverged. Try picking a smaller value for the learning rate alpha! :)")
+    }
 
 	fmt.Printf("Went through %v iterations.\n", iter+1)
 

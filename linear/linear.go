@@ -2,7 +2,10 @@ package linear
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	"github.com/cdipaolo/goml/base"
 )
@@ -16,8 +19,8 @@ import (
 type LeastSquares struct {
 	// alpha and maxIterations are used only for
 	// GradientAscent during learning. If maxIterations
-    // is 0, then GradientAscent will run until the
-    // algorithm detects convergance
+	// is 0, then GradientAscent will run until the
+	// algorithm detects convergance
 	alpha         float64
 	maxIterations int
 
@@ -34,14 +37,15 @@ type LeastSquares struct {
 // initialized with the learning rate alpha, the training
 // set trainingSet, and the expected results upon which to
 // use the dataset to train, expectedResults.
-func NewLeastSquares(alpha float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) (*LeastSquares, error) {
-	if len(trainingSet) == 0 {
-		return nil, fmt.Errorf("Error: length of given training set is 0! Need data!")
-	}
-	if len(expectedResults) == 0 {
-		return nil, fmt.Errorf("Error: length of given result data set is 0! Need expected results!")
-	}
-
+func NewLeastSquares(alpha float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares {
+    var params []float64
+    if trainingSet == nil || len(trainingSet) == 0 {
+        params = []float64{}
+    } else {
+        params = make([]float64, len((trainingSet)[0])+1)
+    }
+    
+    
 	return &LeastSquares{
 		alpha:         alpha,
 		maxIterations: maxIterations,
@@ -51,8 +55,8 @@ func NewLeastSquares(alpha float64, maxIterations int, trainingSet [][]float64, 
 
 		// initialize θ as the zero vector (that is,
 		// the vector of all zeros)
-		Parameters: make([]float64, len((trainingSet)[0])+1),
-	}, nil
+		Parameters: params,
+	}
 }
 
 // UpdateTrainingSet takes in a new training set (variable x)
@@ -91,7 +95,7 @@ func (l *LeastSquares) LearningRate() float64 {
 // the model will go through in GradientAscent, in the
 // worst case
 func (l *LeastSquares) MaxIterations() int {
-    return l.maxIterations
+	return l.maxIterations
 }
 
 // Predict takes in a variable x (an array of floats,) and
@@ -99,7 +103,7 @@ func (l *LeastSquares) MaxIterations() int {
 // current parameter vector θ
 func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
 	if len(x)+1 != len(l.Parameters) {
-		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v", len(x), len(l.Parameters))
+		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(l.Parameters))
 	}
 
 	// include constant term in sum
@@ -116,9 +120,20 @@ func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
 // batch gradient descent on them, optimizing theta so you can
 // predict based on those results
 func (l *LeastSquares) Learn() error {
+    if l.trainingSet == nil || l.expectedResults == nil {
+        err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
+		fmt.Printf(err.Error())
+		return err
+    }
+    
 	examples := len(l.trainingSet)
-	if examples == 0 {
-		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!")
+	if examples == 0 || len(l.trainingSet[0]) == 0 {
+		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
+		fmt.Printf(err.Error())
+		return err
+	}
+	if len(l.expectedResults) == 0 {
+		err := fmt.Errorf("ERROR: Attempting to learn with no expected results! This isn't an unsupervised model!! You'll need to include data before you learn :)\n")
 		fmt.Printf(err.Error())
 		return err
 	}
@@ -141,7 +156,7 @@ func (l *LeastSquares) Learn() error {
 func (l *LeastSquares) String() string {
 	features := len(l.Parameters) - 1
 	if len(l.Parameters) == 0 {
-		fmt.Printf("ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!")
+		fmt.Printf("ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
 	}
 	var buffer bytes.Buffer
 
@@ -213,4 +228,58 @@ func (l *LeastSquares) J() (float64, error) {
 // ( or other methods like Newton's Method)
 func (l *LeastSquares) Theta() []float64 {
 	return l.Parameters
+}
+
+// PersistToFile takes in an absolute filepath and saves the
+// parameter vector θ to the file, which can be restored later.
+// The function will take paths from the current directory, but
+// functions
+//
+// The data is stored as JSON because it's one of the most
+// efficient storage method (you only need one comma extra
+// per feature + two brackets, total!)
+func (l *LeastSquares) PersistToFile(path string) error {
+	if path == "" {
+		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath!")
+	}
+
+	bytes, err := json.Marshal(l.Parameters)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, bytes, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RestoreFromFile takes in a path to a parameter vector theta
+// and assigns the model it's operating on's parameter vector
+// to that.
+//
+// The path must ba an absolute path or a path from the current
+// directory
+//
+// This would be useful in persisting data between running
+// a model on data, or for graphing a dataset with a fit in
+// another framework like Julia/Gadfly.
+func (l *LeastSquares) RestoreFromFile(path string) error {
+	if path == "" {
+		return fmt.Errorf("ERROR: you just tried to restore your model from a file with no path! That's a no-no. Try it with a valid filepath!")
+	}
+
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bytes, &l.Parameters)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
