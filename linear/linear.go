@@ -239,7 +239,7 @@ func (l *LeastSquares) Theta() []float64 {
 // per feature + two brackets, total!) And it's extendable.
 func (l *LeastSquares) PersistToFile(path string) error {
 	if path == "" {
-		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath!")
+		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath")
 	}
 
 	bytes, err := json.Marshal(l.Parameters)
@@ -267,7 +267,7 @@ func (l *LeastSquares) PersistToFile(path string) error {
 // another framework like Julia/Gadfly.
 func (l *LeastSquares) RestoreFromFile(path string) error {
 	if path == "" {
-		return fmt.Errorf("ERROR: you just tried to restore your model from a file with no path! That's a no-no. Try it with a valid filepath!")
+		return fmt.Errorf("ERROR: you just tried to restore your model from a file with no path! That's a no-no. Try it with a valid filepath")
 	}
 
 	bytes, err := ioutil.ReadFile(path)
