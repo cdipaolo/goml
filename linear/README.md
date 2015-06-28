@@ -23,7 +23,13 @@ for i := -10; i < 10; i++ {
 }
 
 // initialize model
-model, err := linear.NewLeastSquares(.0001, 1000, threeDLineX, threeDLineY)
+//
+// use α (learning rate) = .0001
+// use λ (regularization term) = 13.06
+// set the max iteration cap for gradient
+//     descent to be 1000 iterations
+// and finally pass in the data
+model, err := linear.NewLeastSquares(.0001, 13.06, 1000, threeDLineX, threeDLineY)
 if err != nil {
     panic("Your training set (either x or y) was nil/zero length")
 }
@@ -38,6 +44,26 @@ if err != nil {
 guess, err = model.Predict([]float64{12.016, 6.523})
 if err != nil {
     panic("There was some error in the prediction")
+}
+
+// persist the model to disk
+//
+// path to file will be '/tmp/.goml/LeastSquares'
+// and it stores the parameter vector θ as a JSON
+// array
+err = model.PersistToFile("/tmp/.goml/LeastSquares")
+if err != nil {
+    panic("There was some error persisting the model to a file!")
+}
+
+// restore the model from file
+//
+// note that you could have a file with a JSON
+// array of floats from some other tool and it
+// would import correctly as well
+err = model.RestoreFromFile("/tmp/.goml/LeastSquares")
+if err != nil {
+    panic("There was some error persisting the model to a file!")
 }
 ```
 

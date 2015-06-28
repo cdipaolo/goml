@@ -69,7 +69,7 @@ func init() {
 func TestFlatLineShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(.000001, 800, flatX, flatY)
+	model := NewLeastSquares(.000001, 0, 800, flatX, flatY)
 
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
@@ -92,7 +92,7 @@ func TestFlatLineShouldPass1(t *testing.T) {
 func TestFlatLineShouldFail1(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(.000001, 1, flatX, flatY)
+	model := NewLeastSquares(.000001, 0, 1, flatX, flatY)
 
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
@@ -120,7 +120,7 @@ func TestFlatLineShouldFail1(t *testing.T) {
 func TestFlatLineShouldFail2(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(1, 800, flatX, flatY)
+	model := NewLeastSquares(1, 0, 800, flatX, flatY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
@@ -130,17 +130,17 @@ func TestFlatLineShouldFail2(t *testing.T) {
 func TestFlatLineShouldFail3(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(1, 800, [][]float64{}, flatY)
+	model := NewLeastSquares(1, 0, 800, [][]float64{}, flatY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
 
-	model = NewLeastSquares(1, 800, [][]float64{[]float64{}, []float64{}}, flatY)
+	model = NewLeastSquares(1, 0, 800, [][]float64{[]float64{}, []float64{}}, flatY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
 
-	model = NewLeastSquares(1, 800, nil, flatY)
+	model = NewLeastSquares(1, 0, 800, nil, flatY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
@@ -150,12 +150,12 @@ func TestFlatLineShouldFail3(t *testing.T) {
 func TestFlatLineShouldFail4(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(1, 800, flatX, []float64{})
+	model := NewLeastSquares(1, 0, 800, flatX, []float64{})
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
 
-	model = NewLeastSquares(1, 800, flatX, nil)
+	model = NewLeastSquares(1, 0, 800, flatX, nil)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
@@ -165,7 +165,7 @@ func TestFlatLineShouldFail4(t *testing.T) {
 func TestInclinedLineShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(.0001, 500, increasingX, increasingY)
+	model := NewLeastSquares(.0001, 0, 500, increasingX, increasingY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
@@ -179,11 +179,34 @@ func TestInclinedLineShouldPass1(t *testing.T) {
 	}
 }
 
+// test y=x but regularization term too large
+func TestInclinedLineShouldFail1(t *testing.T) {
+	var err error
+
+	model := NewLeastSquares(.0001, 1e3, 500, increasingX, increasingY)
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+    var faliures int
+
+	for i := -20; i < 20; i += 2 {
+        guess, err = model.Predict([]float64{float64(i)})
+        assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+        if abs(float64(i)-guess[0]) > 1e-2 {
+            faliures++
+        }
+        assert.Nil(t, err, "Prediction error should be nil")
+	}
+
+	assert.True(t, faliures > 15, "There should be more faliures than half of the training set")
+}
+
 // test z = 10 + (x/10) + (y/5)
 func TestThreeDimensionalLineShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(.0001, 1000, threeDLineX, threeDLineY)
+	model := NewLeastSquares(.0001, 0, 1000, threeDLineX, threeDLineY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
@@ -203,7 +226,7 @@ func TestThreeDimensionalLineShouldPass1(t *testing.T) {
 func TestPersistLeastSquaresShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(.0001, 500, increasingX, increasingY)
+	model := NewLeastSquares(.0001, 0, 500, increasingX, increasingY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 

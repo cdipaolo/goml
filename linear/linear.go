@@ -20,9 +20,16 @@ type LeastSquares struct {
 	// alpha and maxIterations are used only for
 	// GradientAscent during learning. If maxIterations
 	// is 0, then GradientAscent will run until the
-	// algorithm detects convergance
-	alpha         float64
-	maxIterations int
+	// algorithm detects convergance.
+	//
+	// regularization is used as the regularization
+	// term to avoid overfitting within regression.
+	// Having a regularization term of 0 is like having
+	// _no_ data regularization. The higher the term,
+	// the greater the bias on the regression
+	alpha          float64
+	regularization float64
+	maxIterations  int
 
 	// trainingSet and expectedResults are the
 	// 'x', and 'y' of the data, expressed as
@@ -37,7 +44,7 @@ type LeastSquares struct {
 // initialized with the learning rate alpha, the training
 // set trainingSet, and the expected results upon which to
 // use the dataset to train, expectedResults.
-func NewLeastSquares(alpha float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares {
+func NewLeastSquares(alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares {
 	var params []float64
 	if trainingSet == nil || len(trainingSet) == 0 {
 		params = []float64{}
@@ -46,8 +53,9 @@ func NewLeastSquares(alpha float64, maxIterations int, trainingSet [][]float64, 
 	}
 
 	return &LeastSquares{
-		alpha:         alpha,
-		maxIterations: maxIterations,
+		alpha:          alpha,
+		regularization: regularization,
+		maxIterations:  maxIterations,
 
 		trainingSet:     trainingSet,
 		expectedResults: expectedResults,
@@ -202,6 +210,15 @@ func (l *LeastSquares) Dj(j int) (float64, error) {
 		sum += (l.expectedResults[i] - prediction[0]) * x
 	}
 
+	// add in the regularization term
+	// λ*θ[j]
+	//
+	// notice that we don't count the
+	// constant term
+	if j != 0 {
+		sum += l.regularization * l.Parameters[j]
+	}
+
 	return sum, nil
 }
 
@@ -219,7 +236,14 @@ func (l *LeastSquares) J() (float64, error) {
 		sum += (l.expectedResults[i] - prediction[0]) * (l.expectedResults[i] - prediction[0])
 	}
 
-	return sum / 2, nil
+	// add regularization term!
+	//
+	// notice that the constant term doesn't matter
+	for i := 1; i < len(l.Parameters); i++ {
+		sum += l.regularization * l.Parameters[i] * l.Parameters[i]
+	}
+
+	return sum / float64(2*len(l.trainingSet)), nil
 }
 
 // Theta returns the parameter vector θ for use in persisting
