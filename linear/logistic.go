@@ -151,7 +151,7 @@ func (l *Logistic) Learn() error {
 		return err
 	}
 
-	fmt.Printf("Training:\n\tModel: Linear Least Squares\n\tOptimization Method: Batch Gradient Descent\n\tTraining Examples: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", examples, len(l.trainingSet[0]), l.alpha, l.regularization)
+	fmt.Printf("Training:\n\tModel: Logistic (Binary) Classification\n\tOptimization Method: Batch Gradient Descent\n\tTraining Examples: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", examples, len(l.trainingSet[0]), l.alpha, l.regularization)
 
 	err := base.GradientAscent(l)
 	if err != nil {
