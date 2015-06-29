@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+    "math"
 
 	"github.com/cdipaolo/goml/base"
 )
 
-// LeastSquares implements a standard linear regression model
-// with a Least Squares cost function.
+// Logistic represents the logistic classification
+// model with a sigmoidal hypothesis
 //
-// https://en.wikipedia.org/wiki/Least_squares
+// https://en.wikipedia.org/wiki/Logistic_regression
 //
-// The model uses gradient descent, NOT regular equations.
-type LeastSquares struct {
+// The model is currently optimized using Gradient
+// Ascent, not Newton's method, etc.
+type Logistic struct {
 	// alpha and maxIterations are used only for
 	// GradientAscent during learning. If maxIterations
 	// is 0, then GradientAscent will run until the
@@ -40,11 +42,13 @@ type LeastSquares struct {
 	Parameters []float64 `json:"theta"`
 }
 
-// NewLeastSquares returns a pointer to the linear model
-// initialized with the learning rate alpha, the training
-// set trainingSet, and the expected results upon which to
-// use the dataset to train, expectedResults.
-func NewLeastSquares(alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares {
+// NewLogistic takes in a learning rate alpha, a regularization
+// parameter value (0 means no regularization, higher value
+// means higher bias on the model,) the maximum number of
+// iterations the data can go through in gradient descent,
+// as well as a training set and expected results for that
+// training set.
+func NewLogistic(alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *Logistic {
 	var params []float64
 	if trainingSet == nil || len(trainingSet) == 0 {
 		params = []float64{}
@@ -52,7 +56,7 @@ func NewLeastSquares(alpha, regularization float64, maxIterations int, trainingS
 		params = make([]float64, len((trainingSet)[0])+1)
 	}
 
-	return &LeastSquares{
+	return &Logistic{
 		alpha:          alpha,
 		regularization: regularization,
 		maxIterations:  maxIterations,
@@ -71,7 +75,7 @@ func NewLeastSquares(alpha, regularization float64, maxIterations int, trainingS
 // you want to retrain a model starting with the parameter
 // vector of a previous training session, but most of the time
 // wouldn't be used.
-func (l *LeastSquares) UpdateTrainingSet(trainingSet [][]float64, expectedResults []float64) error {
+func (l *Logistic) UpdateTrainingSet(trainingSet [][]float64, expectedResults []float64) error {
 	if len(trainingSet) == 0 {
 		return fmt.Errorf("Error: length of given training set is 0! Need data!")
 	}
@@ -87,28 +91,28 @@ func (l *LeastSquares) UpdateTrainingSet(trainingSet [][]float64, expectedResult
 
 // UpdateLearningRate set's the learning rate of the model
 // to the given float64.
-func (l *LeastSquares) UpdateLearningRate(a float64) {
+func (l *Logistic) UpdateLearningRate(a float64) {
 	l.alpha = a
 }
 
 // LearningRate returns the learning rate α for gradient
 // descent to optimize the model. Could vary as a function
 // of something else later, potentially.
-func (l *LeastSquares) LearningRate() float64 {
+func (l *Logistic) LearningRate() float64 {
 	return l.alpha
 }
 
 // MaxIterations returns the number of maximum iterations
 // the model will go through in GradientAscent, in the
 // worst case
-func (l *LeastSquares) MaxIterations() int {
+func (l *Logistic) MaxIterations() int {
 	return l.maxIterations
 }
 
 // Predict takes in a variable x (an array of floats,) and
 // finds the value of the hypothesis function given the
 // current parameter vector θ
-func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
+func (l *Logistic) Predict(x []float64) ([]float64, error) {
 	if len(x)+1 != len(l.Parameters) {
 		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(l.Parameters))
 	}
@@ -120,13 +124,15 @@ func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
 		sum += x[i] * l.Parameters[i+1]
 	}
 
-	return []float64{sum}, nil
+	result := 1 / (1 + math.Exp(-sum))
+
+	return []float64{result}, nil
 }
 
 // Learn takes the struct's dataset and expected results and runs
 // batch gradient descent on them, optimizing theta so you can
 // predict based on those results
-func (l *LeastSquares) Learn() error {
+func (l *Logistic) Learn() error {
 	if l.trainingSet == nil || l.expectedResults == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
 		fmt.Printf(err.Error())
@@ -159,15 +165,15 @@ func (l *LeastSquares) Learn() error {
 
 // String implements the fmt interface for clean printing. Here
 // we're using it to print the model as the equation h(θ)=...
-// where h is the linear hypothesis model
-func (l *LeastSquares) String() string {
+// where h is the logistic hypothesis model
+func (l *Logistic) String() string {
 	features := len(l.Parameters) - 1
 	if len(l.Parameters) == 0 {
 		fmt.Printf("ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
 	}
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("h(θ,x) = %.3f + ", l.Parameters[0]))
+	buffer.WriteString(fmt.Sprintf("h(θ,x) = 1 / (1 + exp(-θx))\nθx = %.3f + ", l.Parameters[0]))
 
 	length := features + 1
 	for i := 1; i < length; i++ {
@@ -185,7 +191,7 @@ func (l *LeastSquares) String() string {
 // with respect to theta[j] where theta is the parameter vector
 // associated with our hypothesis function Predict (upon which
 // we are optimizing
-func (l *LeastSquares) Dj(j int) (float64, error) {
+func (l *Logistic) Dj(j int) (float64, error) {
 	if j > len(l.Parameters)-1 {
 		return 0, fmt.Errorf("J (%v) would index out of the bounds of the training set data (len: %v)", j, len(l.Parameters))
 	}
@@ -222,34 +228,10 @@ func (l *LeastSquares) Dj(j int) (float64, error) {
 	return sum, nil
 }
 
-// J returns the Least Squares cost function of the given linear
-// model. Could be usefull in testing convergance
-func (l *LeastSquares) J() (float64, error) {
-	var sum float64
-
-	for i := range l.trainingSet {
-		prediction, err := l.Predict(l.trainingSet[i])
-		if err != nil {
-			return 0, err
-		}
-
-		sum += (l.expectedResults[i] - prediction[0]) * (l.expectedResults[i] - prediction[0])
-	}
-
-	// add regularization term!
-	//
-	// notice that the constant term doesn't matter
-	for i := 1; i < len(l.Parameters); i++ {
-		sum += l.regularization * l.Parameters[i] * l.Parameters[i]
-	}
-
-	return sum / float64(2*len(l.trainingSet)), nil
-}
-
 // Theta returns the parameter vector θ for use in persisting
 // the model, and optimizing the model through gradient descent
 // ( or other methods like Newton's Method)
-func (l *LeastSquares) Theta() []float64 {
+func (l *Logistic) Theta() []float64 {
 	return l.Parameters
 }
 
@@ -261,7 +243,7 @@ func (l *LeastSquares) Theta() []float64 {
 // The data is stored as JSON because it's one of the most
 // efficient storage method (you only need one comma extra
 // per feature + two brackets, total!) And it's extendable.
-func (l *LeastSquares) PersistToFile(path string) error {
+func (l *Logistic) PersistToFile(path string) error {
 	if path == "" {
 		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath")
 	}
@@ -289,7 +271,7 @@ func (l *LeastSquares) PersistToFile(path string) error {
 // This would be useful in persisting data between running
 // a model on data, or for graphing a dataset with a fit in
 // another framework like Julia/Gadfly.
-func (l *LeastSquares) RestoreFromFile(path string) error {
+func (l *Logistic) RestoreFromFile(path string) error {
 	if path == "" {
 		return fmt.Errorf("ERROR: you just tried to restore your model from a file with no path! That's a no-no. Try it with a valid filepath")
 	}

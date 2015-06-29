@@ -5,7 +5,8 @@ This part of the `goml` package implements varied generalized linear models usin
 
 ### implemented models
 
-- ordinary least squares
+- [ordinary least squares](linear.go)
+- [logistic](logistic.go)
 
 ### example ordinary least squares
 

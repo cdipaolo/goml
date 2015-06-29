@@ -34,10 +34,6 @@ type Ascendable interface {
 	// the hypothesis, θ[j]. Called as Dj(j)
 	Dj(int) (float64, error)
 
-	// J returns the cost function J, or an estimate
-	// of the cost function, currently.
-	J() (float64, error)
-
 	// Theta returns a pointer to the parameter vector
 	// theta, which is 1D vector of floats
 	Theta() []float64

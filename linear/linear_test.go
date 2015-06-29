@@ -116,16 +116,6 @@ func TestFlatLineShouldFail1(t *testing.T) {
 	assert.True(t, faliures > 40, "There should be more faliures than half of the training set")
 }
 
-// test y=3 but alpha is too large
-func TestFlatLineShouldFail2(t *testing.T) {
-	var err error
-
-	model := NewLeastSquares(1, 0, 800, flatX, flatY)
-
-	err = model.Learn()
-	assert.NotNil(t, err, "Learning error should not be nil")
-}
-
 // test y=3 but include an invalid data set
 func TestFlatLineShouldFail3(t *testing.T) {
 	var err error
@@ -244,7 +234,7 @@ func TestPersistLeastSquaresShouldPass1(t *testing.T) {
 	// restoring it and testing that predictions are correct
 	// again.
 
-	err = model.PersistToFile("/tmp/.goml/LeastSquares")
+	err = model.PersistToFile("/tmp/.goml/LeastSquares.json")
 	assert.Nil(t, err, "Persistance error should be nil")
 
 	model.Parameters = make([]float64, len(model.Parameters))
@@ -260,7 +250,7 @@ func TestPersistLeastSquaresShouldPass1(t *testing.T) {
 		assert.Nil(t, err, "Prediction error should be nil")
 	}
 
-	err = model.RestoreFromFile("/tmp/.goml/LeastSquares")
+	err = model.RestoreFromFile("/tmp/.goml/LeastSquares.json")
 	assert.Nil(t, err, "Persistance error should be nil")
 
 	for i := -20; i < 20; i++ {

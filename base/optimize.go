@@ -2,7 +2,6 @@ package base
 
 import (
 	"fmt"
-	"math"
 )
 
 // GradientAscent operates on a Descendable model and
@@ -18,17 +17,13 @@ func GradientAscent(d Ascendable) error {
 	if MaxIterations == 0 {
 		MaxIterations = 5000
 	}
-
-	J, err := d.J()
-	if err != nil {
-		return err
-	}
+    
 	var iter int
 	features := len(Theta)
 
 	// Stop iterating if the number of iterations exceeds
 	// the limit, or if the cost function is infinite.
-	for ; iter < MaxIterations && !math.IsInf(J, 0); iter++ {
+	for ; iter < MaxIterations; iter++ {
 		newTheta := make([]float64, features)
 		for j := range Theta {
 			dj, err := d.Dj(j)
@@ -43,15 +38,6 @@ func GradientAscent(d Ascendable) error {
 		for j := range Theta {
 			Theta[j] = newTheta[j]
 		}
-
-		J, err = d.J()
-		if err != nil {
-			return err
-		}
-	}
-
-	if math.IsInf(J, 0) || math.IsNaN(J) {
-		return fmt.Errorf("ERROR: Learning diverged. Try picking a smaller value for the learning rate alpha! :)")
 	}
 
 	fmt.Printf("Went through %v iterations.\n", iter+1)
