@@ -20,7 +20,8 @@ go get github.com/cdipaolo/goml
 ## Currently Implemented Models
 
 - [Generalized Linear Models](linear/)
-..* Ordinary Least Squares
+  * [Ordinary Least Squares](linear/linear.go)
+  * [Logistic Regression](linear/logistic.go)
 
 ## Contributing!
 
