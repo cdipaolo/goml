@@ -1,6 +1,8 @@
 package base
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +12,14 @@ var x [][]float64
 var y []float64
 
 func init() {
+
+	// create the /tmp/.goml/ dir for persistance testing
+	// if it doesn't already exist!
+	err := os.MkdirAll("/tmp/.goml", os.ModePerm)
+	if err != nil {
+		panic(fmt.Sprintf("You should be able to create the directory for goml model persistance testing.\n\tError returned: %v\n", err.Error()))
+	}
+
 	x = [][]float64{}
 	y = []float64{}
 
