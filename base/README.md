@@ -5,6 +5,8 @@
 
 This package helps define common patterns (interfaces,) as well as letting you work with data, get it into your programs, and munge through it.
 
+This package also implements optimization algorithms which can be made available to a user's own models by implementing easy to use interfaces.
+
 ### functions for working with data
 
 - [func LoadDataFromCSV(filepath string) ([][]float64, []float64, error)](data.go)

@@ -1,3 +1,49 @@
+// Package linear implements commonly used
+// General Linear Models.
+//
+// https://en.wikipedia.org/wiki/General_linear_model
+//
+// Models implemented as of yet include:
+//     - Ordinary Least Squares
+//     - Logistic Regression
+//
+// General Usage:
+// Find the model you want to use. Then
+// find the 'NewXXXXXX' function, such as
+//     func NewLeastSquares(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares
+//
+// load in the given parameters, then run
+//     func Learn() error
+//
+// Now you can predict off of the model!
+//     func Predict([]float64) ([]float64, error)
+//
+// Full example assuming testX is of type
+// [][]float64 and testY is of type []float64
+// where there are 2 features being inputted
+// (ie. the size of a house and the number of
+// bedrooms being given as x[0] and x[1],
+// respectively):
+//
+//     // optimization method: Batch Gradient Ascent
+//     // Learning rate: 1e-4
+//     // Regulatization term: 6
+//     // Max Iterations: 800
+//     // Dataset to learn fron: testX
+//     // Expected results dataset: testY
+//     model := NewLeastSquares(base.BatchGA, 1e-4, 6, 800, testX, testY)
+//
+//     err := model.Learn()
+//     if err != nil {
+//         panic("SOME ERROR!! RUN!")	
+//     }
+//
+//     // now I want to predict off of this
+//     // Ordinary Least Squares model!
+//     guess, err = model.Predict([]float64{10000,6})
+//     if err != nil {
+//         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")	
+//     }
 package linear
 
 import (
@@ -60,8 +106,8 @@ func NewLeastSquares(method base.OptimizationMethod, alpha, regularization float
 		alpha:          alpha,
 		regularization: regularization,
 		maxIterations:  maxIterations,
-		
-		method: 		method,
+
+		method: method,
 
 		trainingSet:     trainingSet,
 		expectedResults: expectedResults,
@@ -249,7 +295,7 @@ func (l *LeastSquares) Dj(j int) (float64, error) {
 //
 // assumes that i,j is within the bounds of the
 // data they are looking up! (because this is getting
-// called so much, it needs to be efficient with 
+// called so much, it needs to be efficient with
 // comparisons)
 func (l *LeastSquares) Dij(i int, j int) (float64, error) {
 	prediction, err := l.Predict(l.trainingSet[i])

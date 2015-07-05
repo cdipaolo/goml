@@ -27,12 +27,13 @@ for i := -10; i < 10; i++ {
 
 // initialize model
 //
-// use α (learning rate) = .0001
+// use optimization method of Stochastic Gradient Ascent
+// use α (learning rate) = .0001 / 1e-4
 // use λ (regularization term) = 13.06
 // set the max iteration cap for gradient
-//     descent to be 1000 iterations
+//     descent to be 1000/1e3 iterations
 // and finally pass in the data
-model, err := linear.NewLeastSquares(.0001, 13.06, 1000, threeDLineX, threeDLineY)
+model, err := linear.NewLeastSquares(base.StochasticGA, 1e-4, 13.06, 1e3, threeDLineX, threeDLineY)
 if err != nil {
     panic("Your training set (either x or y) was nil/zero length")
 }

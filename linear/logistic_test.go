@@ -50,7 +50,7 @@ func init() {
 	// 1 when i > 0
 	twoDX = [][]float64{}
 	twoDY = []float64{}
-	for i := -10; i < 10; i += 1 {
+	for i := -10; i < 10; i++ {
 		twoDX = append(twoDX, []float64{float64(i)})
 		if i > 0 {
 			twoDY = append(twoDY, 1.0)
@@ -91,13 +91,13 @@ func TestFourDimensionalPlaneShouldPass1(t *testing.T) {
 			for k := -20; k < 20; k += 10 {
 				guess, err = model.Predict([]float64{float64(i), float64(j), float64(k)})
 				assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-				if 10*i + j/20 + k > 0 {
+				if 10*i+j/20+k > 0 {
 					assert.True(t, guess[0] > 0.5, "Prediction should be more likely to be 1")
-                    assert.True(t, guess[0] < 1.001, "Prediction should never be greater than 1.0")
-                } else if 10*i + j/20 + k < 0 && guess[0] < 0.5 {
-                    assert.True(t, guess[0] < 0.5, "Prediction should be more likely to be 0")
-                    assert.True(t, guess[0] > 0.0, "Prediction should never be less than 0.0")
-                }
+					assert.True(t, guess[0] < 1.001, "Prediction should never be greater than 1.0")
+				} else if 10*i+j/20+k < 0 && guess[0] < 0.5 {
+					assert.True(t, guess[0] < 0.5, "Prediction should be more likely to be 0")
+					assert.True(t, guess[0] > 0.0, "Prediction should never be less than 0.0")
+				}
 				assert.Nil(t, err, "Prediction error should be nil")
 			}
 		}
@@ -120,13 +120,13 @@ func TestFourDimensionalPlaneShouldPass2(t *testing.T) {
 			for k := -20; k < 20; k += 10 {
 				guess, err = model.Predict([]float64{float64(i), float64(j), float64(k)})
 				assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-				if 10*i + j/20 + k > 0 {
+				if 10*i+j/20+k > 0 {
 					assert.True(t, guess[0] > 0.5, "Prediction should be more likely to be 1")
-                    assert.True(t, guess[0] < 1.001, "Prediction should never be greater than 1.0")
-                } else if 10*i + j/20 + k < 0 && guess[0] < 0.5 {
-                    assert.True(t, guess[0] < 0.5, "Prediction should be more likely to be 0")
-                    assert.True(t, guess[0] > 0.0, "Prediction should never be less than 0.0")
-                }
+					assert.True(t, guess[0] < 1.001, "Prediction should never be greater than 1.0")
+				} else if 10*i+j/20+k < 0 && guess[0] < 0.5 {
+					assert.True(t, guess[0] < 0.5, "Prediction should be more likely to be 0")
+					assert.True(t, guess[0] > 0.0, "Prediction should never be less than 0.0")
+				}
 				assert.Nil(t, err, "Prediction error should be nil")
 			}
 		}
@@ -150,11 +150,11 @@ func TestFourDimensionalPlaneShouldFail1(t *testing.T) {
 			for k := -20; k < 20; k += 7 {
 				guess, err = model.Predict([]float64{float64(i), float64(j), float64(k)})
 				assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-				if 10*i + j/20 + k > 0 && guess[0] > 0.5 {
+				if 10*i+j/20+k > 0 && guess[0] > 0.5 {
 					faliures++
-                } else if 10*i + j/20 + k < 0 && guess[0] < 0.5 {
-                    faliures++
-                }
+				} else if 10*i+j/20+k < 0 && guess[0] < 0.5 {
+					faliures++
+				}
 				assert.Nil(t, err, "Prediction error should be nil")
 			}
 		}
@@ -180,11 +180,11 @@ func TestFourDimensionalPlaneShouldFail2(t *testing.T) {
 			for k := -20; k < 20; k += 7 {
 				guess, err = model.Predict([]float64{float64(i), float64(j), float64(k)})
 				assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-				if 10*i + j/20 + k > 0 && guess[0] > 0.5 {
+				if 10*i+j/20+k > 0 && guess[0] > 0.5 {
 					faliures++
-                } else if 10*i + j/20 + k < 0 && guess[0] < 0.5 {
-                    faliures++
-                }
+				} else if 10*i+j/20+k < 0 && guess[0] < 0.5 {
+					faliures++
+				}
 				assert.Nil(t, err, "Prediction error should be nil")
 			}
 		}
@@ -284,18 +284,18 @@ func TestTwoDimensionalPlaneShouldPass1(t *testing.T) {
 	var guess []float64
 
 	for i := -20; i < 20; i += 3 {
-        guess, err = model.Predict([]float64{float64(i)})
+		guess, err = model.Predict([]float64{float64(i)})
 
-        if i > 0 {
-            assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
-            assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
-        } else {
-            assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
-            assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
-        }
+		if i > 0 {
+			assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+			assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+		} else {
+			assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+			assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+		}
 
-        assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-        assert.Nil(t, err, "Prediction error should be nil")
+		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+		assert.Nil(t, err, "Prediction error should be nil")
 	}
 }
 
@@ -310,18 +310,18 @@ func TestTwoDimensionalPlaneShouldPass2(t *testing.T) {
 	var guess []float64
 
 	for i := -20; i < 20; i += 3 {
-        guess, err = model.Predict([]float64{float64(i)})
+		guess, err = model.Predict([]float64{float64(i)})
 
-        if i > 0 {
-            assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
-            assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
-        } else {
-            assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
-            assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
-        }
+		if i > 0 {
+			assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+			assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+		} else {
+			assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+			assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+		}
 
-        assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-        assert.Nil(t, err, "Prediction error should be nil")
+		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+		assert.Nil(t, err, "Prediction error should be nil")
 	}
 }
 
@@ -337,15 +337,15 @@ func TestTwoDimensionalPlaneShouldFail1(t *testing.T) {
 	var faliures int
 
 	for i := -200; i < 200; i += 15 {
-        guess, err = model.Predict([]float64{float64(i)})
-        if i > 0 && guess[0] < 0.5 {
-            faliures++
-        } else if i < 0 && guess[0] > 0.5 {
-            faliures++
-        }
+		guess, err = model.Predict([]float64{float64(i)})
+		if i > 0 && guess[0] < 0.5 {
+			faliures++
+		} else if i < 0 && guess[0] > 0.5 {
+			faliures++
+		}
 
-        assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-        assert.Nil(t, err, "Prediction error should be nil")
+		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+		assert.Nil(t, err, "Prediction error should be nil")
 	}
 
 	assert.True(t, faliures > 10, "There should be a strong majority of faliures of the training set")
@@ -363,15 +363,15 @@ func TestTwoDimensionalPlaneShouldFail2(t *testing.T) {
 	var faliures int
 
 	for i := -200; i < 200; i += 15 {
-        guess, err = model.Predict([]float64{float64(i)})
-        if i > 0 && guess[0] < 0.5 {
-            faliures++
-        } else if i < 0 && guess[0] > 0.5 {
-            faliures++
-        }
+		guess, err = model.Predict([]float64{float64(i)})
+		if i > 0 && guess[0] < 0.5 {
+			faliures++
+		} else if i < 0 && guess[0] > 0.5 {
+			faliures++
+		}
 
-        assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-        assert.Nil(t, err, "Prediction error should be nil")
+		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+		assert.Nil(t, err, "Prediction error should be nil")
 	}
 
 	assert.True(t, faliures > 10, "There should be a strong majority of faliures of the training set")
@@ -388,20 +388,20 @@ func TestThreeDimensionalPlaneShouldPass1(t *testing.T) {
 	var guess []float64
 
 	for i := -20; i < 20; i++ {
-        for j := -20; j < 20; j++ {
-            guess, err = model.Predict([]float64{float64(i), float64(j)})
-        
-            if i+j > 5 {
-                assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
-                assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
-            } else {
-                assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
-                assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
-            }
+		for j := -20; j < 20; j++ {
+			guess, err = model.Predict([]float64{float64(i), float64(j)})
 
-            assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-            assert.Nil(t, err, "Prediction error should be nil")
-        }
+			if i+j > 5 {
+				assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+				assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+			} else {
+				assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+				assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+			}
+
+			assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.Nil(t, err, "Prediction error should be nil")
+		}
 	}
 }
 
@@ -416,23 +416,22 @@ func TestThreeDimensionalPlaneShouldPass2(t *testing.T) {
 	var guess []float64
 
 	for i := -20; i < 20; i++ {
-        for j := -20; j < 20; j++ {
-            guess, err = model.Predict([]float64{float64(i), float64(j)})
-        
-            if i+j > 5 {
-                assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
-                assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
-            } else {
-                assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
-                assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
-            }
+		for j := -20; j < 20; j++ {
+			guess, err = model.Predict([]float64{float64(i), float64(j)})
 
-            assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-            assert.Nil(t, err, "Prediction error should be nil")
-        }
+			if i+j > 5 {
+				assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+				assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+			} else {
+				assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+				assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+			}
+
+			assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.Nil(t, err, "Prediction error should be nil")
+		}
 	}
 }
-
 
 // test persisting y=x to file
 func TestPersistLogisticShouldPass1(t *testing.T) {
@@ -446,15 +445,15 @@ func TestPersistLogisticShouldPass1(t *testing.T) {
 
 	for i := -20; i < 20; i++ {
 		guess, err = model.Predict([]float64{float64(i)})
-        
-        if i > 0 {
-            assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
-            assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
-        } else {
-            assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
-            assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
-        }
-        
+
+		if i > 0 {
+			assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+			assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+		} else {
+			assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+			assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+		}
+
 		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
 		assert.Nil(t, err, "Prediction error should be nil")
 	}
@@ -483,17 +482,17 @@ func TestPersistLogisticShouldPass1(t *testing.T) {
 	err = model.RestoreFromFile("/tmp/.goml/Logistic.json")
 	assert.Nil(t, err, "Persistance error should be nil")
 
-    for i := -20; i < 20; i++ {
+	for i := -20; i < 20; i++ {
 		guess, err = model.Predict([]float64{float64(i)})
-        
-        if i > 0 {
-            assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
-            assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
-        } else {
-            assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
-            assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
-        }
-        
+
+		if i > 0 {
+			assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+			assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+		} else {
+			assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+			assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+		}
+
 		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
 		assert.Nil(t, err, "Prediction error should be nil")
 	}

@@ -1,3 +1,9 @@
+// Package base declares models, interfaces, and
+// methods to be used when working with the rest
+// of the goml library, as well as common functions
+// both used by the rest of the library and for
+// the user's convenience for working with data,
+// persisting it to files, and optimizing functions
 package base
 
 // OptimizationMethod defines a type enum which
@@ -6,9 +12,11 @@ package base
 // creating a new model
 type OptimizationMethod string
 
+// Constants declare the types of optimization
+// methods you can use.
 const (
-	BatchGA OptimizationMethod = "Batch Gradient Ascent"
-	StochasticGA = "Stochastic Gradient Descent"
+	BatchGA      OptimizationMethod = "Batch Gradient Ascent"
+	StochasticGA                    = "Stochastic Gradient Descent"
 )
 
 // Model is an interface that can Train based on
@@ -34,7 +42,7 @@ type Model interface {
 
 // Ascendable is an interface that can be used
 // with batch gradient descent where the parameter
-// vector theta is in one dimension only (so 
+// vector theta is in one dimension only (so
 // softmax regression would need it's own model,
 // for example)
 type Ascendable interface {
@@ -61,7 +69,7 @@ type Ascendable interface {
 
 // StochasticAscendable is an interface that can be used
 // with stochastic gradient descent where the parameter
-// vector theta is in one dimension only (so 
+// vector theta is in one dimension only (so
 // softmax regression would need it's own model,
 // for example)
 type StochasticAscendable interface {

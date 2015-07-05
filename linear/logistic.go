@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
-    "math"
 
 	"github.com/cdipaolo/goml/base"
 )
@@ -65,7 +65,7 @@ func NewLogistic(method base.OptimizationMethod, alpha, regularization float64, 
 		regularization: regularization,
 		maxIterations:  maxIterations,
 
-		method: 		method,
+		method: method,
 
 		trainingSet:     trainingSet,
 		expectedResults: expectedResults,
@@ -255,7 +255,7 @@ func (l *Logistic) Dj(j int) (float64, error) {
 //
 // assumes that i,j is within the bounds of the
 // data they are looking up! (because this is getting
-// called so much, it needs to be efficient with 
+// called so much, it needs to be efficient with
 // comparisons)
 func (l *Logistic) Dij(i int, j int) (float64, error) {
 	prediction, err := l.Predict(l.trainingSet[i])

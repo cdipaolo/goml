@@ -12,7 +12,7 @@ import (
 // Gradient Descent follows the following algorithm:
 // θ[j] := θ[j] + α·∇J(θ)
 //
-// where J(θ) is the cost function, α is the learning 
+// where J(θ) is the cost function, α is the learning
 // rate, and θ[j] is the j-th value in the parameter
 // vector
 func GradientAscent(d Ascendable) error {
@@ -25,7 +25,7 @@ func GradientAscent(d Ascendable) error {
 	if MaxIterations == 0 {
 		MaxIterations = 5000
 	}
-    
+
 	var iter int
 	features := len(Theta)
 
@@ -60,7 +60,7 @@ func GradientAscent(d Ascendable) error {
 // StochasticGradientAscent operates on a StochasticAscendable
 // model and further optimizes the parameter vector Theta of the
 // model, which is then used within the Predict function.
-// Stochastic gradient descent updates the parameter vector 
+// Stochastic gradient descent updates the parameter vector
 // after looking at each individual training example, which
 // can result in never converging to the absolute minimum; even
 // raising the cost function potentially, but it will typically
@@ -71,7 +71,7 @@ func GradientAscent(d Ascendable) error {
 // Gradient Descent follows the following algorithm:
 // θ[j] := θ[j] + α·∇J(θ)
 //
-// where J(θ) is the cost function, α is the learning 
+// where J(θ) is the cost function, α is the learning
 // rate, and θ[j] is the j-th value in the parameter
 // vector
 func StochasticGradientAscent(d StochasticAscendable) error {
@@ -85,7 +85,7 @@ func StochasticGradientAscent(d StochasticAscendable) error {
 	if MaxIterations == 0 {
 		MaxIterations = 5000
 	}
-    
+
 	var iter int
 	features := len(Theta)
 
@@ -95,7 +95,7 @@ func StochasticGradientAscent(d StochasticAscendable) error {
 		newTheta := make([]float64, features)
 		for i := 0; i < Examples; i++ {
 			for j := range Theta {
-				dj, err := d.Dij(i,j)
+				dj, err := d.Dij(i, j)
 				if err != nil {
 					return err
 				}

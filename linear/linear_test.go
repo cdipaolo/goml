@@ -279,15 +279,15 @@ func TestInclinedLineShouldFail1(t *testing.T) {
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
-    var faliures int
+	var faliures int
 
 	for i := -20; i < 20; i += 2 {
-        guess, err = model.Predict([]float64{float64(i)})
-        assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-        if abs(float64(i)-guess[0]) > 1e-2 {
-            faliures++
-        }
-        assert.Nil(t, err, "Prediction error should be nil")
+		guess, err = model.Predict([]float64{float64(i)})
+		assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+		if abs(float64(i)-guess[0]) > 1e-2 {
+			faliures++
+		}
+		assert.Nil(t, err, "Prediction error should be nil")
 	}
 
 	assert.True(t, faliures > 15, "There should be more faliures than half of the training set")
@@ -302,15 +302,15 @@ func TestInclinedLineShouldFail2(t *testing.T) {
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
-    var faliures int
+	var faliures int
 
 	for i := -20; i < 20; i += 2 {
-        guess, err = model.Predict([]float64{float64(i)})
-        assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-        if abs(float64(i)-guess[0]) > 1e-2 {
-            faliures++
-        }
-        assert.Nil(t, err, "Prediction error should be nil")
+		guess, err = model.Predict([]float64{float64(i)})
+		assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+		if abs(float64(i)-guess[0]) > 1e-2 {
+			faliures++
+		}
+		assert.Nil(t, err, "Prediction error should be nil")
 	}
 
 	assert.True(t, faliures > 15, "There should be more faliures than half of the training set")
