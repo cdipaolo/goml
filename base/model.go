@@ -1,5 +1,16 @@
 package base
 
+// OptimizationMethod defines a type enum which
+// (using constants declared below) lets a user
+// pass in a optimization method to use when
+// creating a new model
+type OptimizationMethod string
+
+const (
+	BatchGA OptimizationMethod = "Batch Gradient Ascent"
+	StochasticGA = "Stochastic Gradient Descent"
+)
+
 // Model is an interface that can Train based on
 // a 2D array of data (called x) and an array (y)
 // of solution data. Model trains in a supervised
@@ -22,7 +33,10 @@ type Model interface {
 }
 
 // Ascendable is an interface that can be used
-// with stochastic and/or batch gradient descent.
+// with batch gradient descent where the parameter
+// vector theta is in one dimension only (so 
+// softmax regression would need it's own model,
+// for example)
 type Ascendable interface {
 	// LearningRate returns the learning rate α
 	// to be used in Gradient Descent as the
@@ -33,6 +47,38 @@ type Ascendable interface {
 	// J(θ) with respect to the j-th parameter of
 	// the hypothesis, θ[j]. Called as Dj(j)
 	Dj(int) (float64, error)
+
+	// Theta returns a pointer to the parameter vector
+	// theta, which is 1D vector of floats
+	Theta() []float64
+
+	// MaxIterations returns the maximum number of
+	// iterations to try using gradient ascent. Might
+	// return after less if strong convergance is
+	// detected, but it'll let the user set a cap.
+	MaxIterations() int
+}
+
+// StochasticAscendable is an interface that can be used
+// with stochastic gradient descent where the parameter
+// vector theta is in one dimension only (so 
+// softmax regression would need it's own model,
+// for example)
+type StochasticAscendable interface {
+	// LearningRate returns the learning rate α
+	// to be used in Gradient Descent as the
+	// modifier term
+	LearningRate() float64
+
+	// Examples returns the number of examples in the
+	// training set the model is using
+	Examples() int
+
+	// Dj returns the derivative of the cost function
+	// J(θ) with respect to the j-th parameter of
+	// the hypothesis, θ[j], for the training example
+	// x[i]. Called as Dij(i,j)
+	Dij(int, int) (float64, error)
 
 	// Theta returns a pointer to the parameter vector
 	// theta, which is 1D vector of floats

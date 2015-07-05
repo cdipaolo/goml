@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/cdipaolo/goml/base"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,7 +79,36 @@ func init() {
 func TestFourDimensionalPlaneShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLogistic(.000001, 0, 800, fourDX, fourDY)
+	model := NewLogistic(base.BatchGA, .000001, 0, 800, fourDX, fourDY)
+
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+
+	for i := -20; i < 20; i += 10 {
+		for j := -20; j < 20; j += 10 {
+			for k := -20; k < 20; k += 10 {
+				guess, err = model.Predict([]float64{float64(i), float64(j), float64(k)})
+				assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+				if 10*i + j/20 + k > 0 {
+					assert.True(t, guess[0] > 0.5, "Prediction should be more likely to be 1")
+                    assert.True(t, guess[0] < 1.001, "Prediction should never be greater than 1.0")
+                } else if 10*i + j/20 + k < 0 && guess[0] < 0.5 {
+                    assert.True(t, guess[0] < 0.5, "Prediction should be more likely to be 0")
+                    assert.True(t, guess[0] > 0.0, "Prediction should never be less than 0.0")
+                }
+				assert.Nil(t, err, "Prediction error should be nil")
+			}
+		}
+	}
+}
+
+// same as above but with StochasticGA
+func TestFourDimensionalPlaneShouldPass2(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.StochasticGA, .000001, 0, 800, fourDX, fourDY)
 
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
@@ -106,7 +137,37 @@ func TestFourDimensionalPlaneShouldPass1(t *testing.T) {
 func TestFourDimensionalPlaneShouldFail1(t *testing.T) {
 	var err error
 
-	model := NewLogistic(.000001, 0, 1, fourDX, fourDY)
+	model := NewLogistic(base.BatchGA, .000001, 0, 1, fourDX, fourDY)
+
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+	var faliures int
+
+	for i := -20; i < 20; i += 7 {
+		for j := -20; j < 20; j += 7 {
+			for k := -20; k < 20; k += 7 {
+				guess, err = model.Predict([]float64{float64(i), float64(j), float64(k)})
+				assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+				if 10*i + j/20 + k > 0 && guess[0] > 0.5 {
+					faliures++
+                } else if 10*i + j/20 + k < 0 && guess[0] < 0.5 {
+                    faliures++
+                }
+				assert.Nil(t, err, "Prediction error should be nil")
+			}
+		}
+	}
+
+	assert.True(t, faliures > 40, "There should be more faliures than half of the training set")
+}
+
+// same as above but with StochasticGA
+func TestFourDimensionalPlaneShouldFail2(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.StochasticGA, .000001, 0, 1, fourDX, fourDY)
 
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
@@ -136,32 +197,77 @@ func TestFourDimensionalPlaneShouldFail1(t *testing.T) {
 func TestFourDimensionalPlaneShouldFail3(t *testing.T) {
 	var err error
 
-	model := NewLogistic(1, 0, 800, [][]float64{}, fourDY)
+	model := NewLogistic(base.BatchGA, 1, 0, 800, [][]float64{}, fourDY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
 
-	model = NewLogistic(1, 0, 800, [][]float64{[]float64{}, []float64{}}, fourDY)
+	model = NewLogistic(base.BatchGA, 1, 0, 800, [][]float64{[]float64{}, []float64{}}, fourDY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
 
-	model = NewLogistic(1, 0, 800, nil, fourDY)
+	model = NewLogistic(base.BatchGA, 1, 0, 800, nil, fourDY)
+
+	err = model.Learn()
+	assert.NotNil(t, err, "Learning error should not be nil")
+}
+
+// same as above but with StochasticGA
+func TestFourDimensionalPlaneShouldFail4(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.StochasticGA, 1, 0, 800, [][]float64{}, fourDY)
+
+	err = model.Learn()
+	assert.NotNil(t, err, "Learning error should not be nil")
+
+	model = NewLogistic(base.BatchGA, 1, 0, 800, [][]float64{[]float64{}, []float64{}}, fourDY)
+
+	err = model.Learn()
+	assert.NotNil(t, err, "Learning error should not be nil")
+
+	model = NewLogistic(base.BatchGA, 1, 0, 800, nil, fourDY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
 }
 
 // test ( 10*i + j/20 + k ) > 0 but include an invalid data set
-func TestFourDimensionalPlaneShouldFail4(t *testing.T) {
+func TestFourDimensionalPlaneShouldFail5(t *testing.T) {
 	var err error
 
-	model := NewLogistic(1, 0, 800, fourDX, []float64{})
+	model := NewLogistic(base.BatchGA, 1, 0, 800, fourDX, []float64{})
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
 
-	model = NewLogistic(1, 0, 800, fourDX, nil)
+	model = NewLogistic(base.BatchGA, 1, 0, 800, fourDX, nil)
+
+	err = model.Learn()
+	assert.NotNil(t, err, "Learning error should not be nil")
+}
+
+// same as above but with StochasticGA
+func TestFourDimensionalPlaneShouldFail6(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.StochasticGA, 1, 0, 800, fourDX, []float64{})
+
+	err = model.Learn()
+	assert.NotNil(t, err, "Learning error should not be nil")
+
+	model = NewLogistic(base.BatchGA, 1, 0, 800, fourDX, nil)
+
+	err = model.Learn()
+	assert.NotNil(t, err, "Learning error should not be nil")
+}
+
+// invalid method
+func TestFourDimensionalPlaneShouldFail7(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.OptimizationMethod("Not A Method!!!"), 1, 0, 800, fourDX, fourDY)
 
 	err = model.Learn()
 	assert.NotNil(t, err, "Learning error should not be nil")
@@ -171,7 +277,33 @@ func TestFourDimensionalPlaneShouldFail4(t *testing.T) {
 func TestTwoDimensionalPlaneShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLogistic(.0001, 0, 500, twoDX, twoDY)
+	model := NewLogistic(base.BatchGA, .0001, 0, 500, twoDX, twoDY)
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+
+	for i := -20; i < 20; i += 3 {
+        guess, err = model.Predict([]float64{float64(i)})
+
+        if i > 0 {
+            assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+            assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+        } else {
+            assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+            assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+        }
+
+        assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+        assert.Nil(t, err, "Prediction error should be nil")
+	}
+}
+
+// same as above but with StochasticGA
+func TestTwoDimensionalPlaneShouldPass2(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.StochasticGA, .0001, 0, 500, twoDX, twoDY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
@@ -197,7 +329,33 @@ func TestTwoDimensionalPlaneShouldPass1(t *testing.T) {
 func TestTwoDimensionalPlaneShouldFail1(t *testing.T) {
 	var err error
 
-	model := NewLogistic(.0001, 1e3, 500, twoDX, twoDY)
+	model := NewLogistic(base.BatchGA, 1e-4, 1e3, 500, twoDX, twoDY)
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+	var faliures int
+
+	for i := -200; i < 200; i += 15 {
+        guess, err = model.Predict([]float64{float64(i)})
+        if i > 0 && guess[0] < 0.5 {
+            faliures++
+        } else if i < 0 && guess[0] > 0.5 {
+            faliures++
+        }
+
+        assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+        assert.Nil(t, err, "Prediction error should be nil")
+	}
+
+	assert.True(t, faliures > 10, "There should be a strong majority of faliures of the training set")
+}
+
+// same as above but with StochasticGA
+func TestTwoDimensionalPlaneShouldFail2(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.StochasticGA, 1e-4, 1e3, 300, twoDX, twoDY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
@@ -223,7 +381,7 @@ func TestTwoDimensionalPlaneShouldFail1(t *testing.T) {
 func TestThreeDimensionalPlaneShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLogistic(.0001, 0, 3000, threeDX, threeDY)
+	model := NewLogistic(base.BatchGA, .0001, 0, 3000, threeDX, threeDY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
@@ -247,11 +405,40 @@ func TestThreeDimensionalPlaneShouldPass1(t *testing.T) {
 	}
 }
 
+// same as above but with StochasticGA
+func TestThreeDimensionalPlaneShouldPass2(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.StochasticGA, .0001, 0, 3000, threeDX, threeDY)
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+
+	for i := -20; i < 20; i++ {
+        for j := -20; j < 20; j++ {
+            guess, err = model.Predict([]float64{float64(i), float64(j)})
+        
+            if i+j > 5 {
+                assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+                assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+            } else {
+                assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+                assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+            }
+
+            assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+            assert.Nil(t, err, "Prediction error should be nil")
+        }
+	}
+}
+
+
 // test persisting y=x to file
 func TestPersistLogisticShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLogistic(.0001, 0, 500, twoDX, twoDY)
+	model := NewLogistic(base.BatchGA, .0001, 0, 500, twoDX, twoDY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 

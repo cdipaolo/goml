@@ -31,6 +31,10 @@ type LeastSquares struct {
 	regularization float64
 	maxIterations  int
 
+	// method is the optimization method used when training
+	// the model
+	method base.OptimizationMethod
+
 	// trainingSet and expectedResults are the
 	// 'x', and 'y' of the data, expressed as
 	// vectors, that the model can optimize from
@@ -44,7 +48,7 @@ type LeastSquares struct {
 // initialized with the learning rate alpha, the training
 // set trainingSet, and the expected results upon which to
 // use the dataset to train, expectedResults.
-func NewLeastSquares(alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares {
+func NewLeastSquares(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares {
 	var params []float64
 	if trainingSet == nil || len(trainingSet) == 0 {
 		params = []float64{}
@@ -56,6 +60,8 @@ func NewLeastSquares(alpha, regularization float64, maxIterations int, trainingS
 		alpha:          alpha,
 		regularization: regularization,
 		maxIterations:  maxIterations,
+		
+		method: 		method,
 
 		trainingSet:     trainingSet,
 		expectedResults: expectedResults,
@@ -96,6 +102,12 @@ func (l *LeastSquares) UpdateLearningRate(a float64) {
 // of something else later, potentially.
 func (l *LeastSquares) LearningRate() float64 {
 	return l.alpha
+}
+
+// Examples returns the number of training examples (m)
+// that the model currently is training from.
+func (l *LeastSquares) Examples() int {
+	return len(l.trainingSet)
 }
 
 // MaxIterations returns the number of maximum iterations
@@ -145,9 +157,17 @@ func (l *LeastSquares) Learn() error {
 		return err
 	}
 
-	fmt.Printf("Training:\n\tModel: Linear Least Squares\n\tOptimization Method: Batch Gradient Descent\n\tTraining Examples: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", examples, len(l.trainingSet[0]), l.alpha, l.regularization)
+	fmt.Printf("Training:\n\tModel: Logistic (Binary) Classification\n\tOptimization Method: %v\n\tTraining Examples: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", l.method, examples, len(l.trainingSet[0]), l.alpha, l.regularization)
 
-	err := base.GradientAscent(l)
+	var err error
+	if l.method == base.BatchGA {
+		err = base.GradientAscent(l)
+	} else if l.method == base.StochasticGA {
+		err = base.StochasticGradientAscent(l)
+	} else {
+		err = fmt.Errorf("Chose a training method not implemented for LeastSquares regression")
+	}
+
 	if err != nil {
 		fmt.Printf("\nERROR: Error while learning –\n\t%v\n\n", err)
 		return err
@@ -220,6 +240,45 @@ func (l *LeastSquares) Dj(j int) (float64, error) {
 	}
 
 	return sum, nil
+}
+
+// Dij returns the derivative of the cost function
+// J(θ) with respect to the j-th parameter of
+// the hypothesis, θ[j], for the training example
+// x[i]. Used in Stochastic Gradient Descent.
+//
+// assumes that i,j is within the bounds of the
+// data they are looking up! (because this is getting
+// called so much, it needs to be efficient with 
+// comparisons)
+func (l *LeastSquares) Dij(i int, j int) (float64, error) {
+	prediction, err := l.Predict(l.trainingSet[i])
+	if err != nil {
+		return 0, err
+	}
+
+	// account for constant term
+	// x is x[i][j] via Andrew Ng's terminology
+	var x float64
+	if j == 0 {
+		x = 1
+	} else {
+		x = l.trainingSet[i][j-1]
+	}
+
+	var gradient float64
+	gradient = (l.expectedResults[i] - prediction[0]) * x
+
+	// add in the regularization term
+	// λ*θ[j]
+	//
+	// notice that we don't count the
+	// constant term
+	if j != 0 {
+		gradient += l.regularization * l.Parameters[j]
+	}
+
+	return gradient, nil
 }
 
 // J returns the Least Squares cost function of the given linear
