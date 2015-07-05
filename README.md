@@ -22,6 +22,8 @@ go get github.com/cdipaolo/goml
 - [Generalized Linear Models](linear/)
   * [Ordinary Least Squares](linear/linear.go)
   * [Logistic Regression](linear/logistic.go)
+- [Perceptron](perceptron/)
+  * [Online, Binary Perceptron](perceptron/perceptron.go)
 
 ## Contributing!
 
