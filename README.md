@@ -20,7 +20,9 @@ go get github.com/cdipaolo/goml/perceptron
 
 ## Documentation
 
-Look at each package (like right now, in GitHub,) and you will see a link to Godoc as well as an explanation of the package and an example usage. You can even click on the main bullets below and it'll take you to those packages, because I'm just that nice of a guy :smile:!
+[![GoDoc](https://godoc.org/github.com/cdipaolo/goml?status.svg)](https://godoc.org/github.com/cdipaolo/goml)
+
+All the code is well documented, and the source is/should be really readable if you'd like to make sense of it all! Look at each package (like right now, in GitHub,) and you will see a link to Godoc as well as an explanation of the package and an example usage. You can even click on the main bullets below and it'll take you to those packages, because I'm just that nice of a guy :smile:! Also you could just use the Godoc link above and navigate to the package you'd like to see more about.
 
 ## Currently Implemented Models
 
