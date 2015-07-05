@@ -11,11 +11,16 @@ Each of the packages have individual README's where you can learn about how to u
 
 ## Installation
 
-yes. It's this easy.
+yes. It's this easy. Just install the base package and any other packages you might need. In some cases you might not even need the base package, but it can be useful if you want to persist a dataset to a file (though persisting a model is handled through each respective package)
 
 ```bash
-go get github.com/cdipaolo/goml
+go get github.com/cdipaolo/goml/base
+go get github.com/cdipaolo/goml/perceptron
 ```
+
+## Documentation
+
+Look at each package (like right now, in GitHub,) and you will see a link to Godoc as well as an explanation of the package and an example usage. You can even click on the main bullets below and it'll take you to those packages, because I'm just that nice of a guy :smile:!
 
 ## Currently Implemented Models
 
