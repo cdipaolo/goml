@@ -1,6 +1,7 @@
 ## `goml`
 ### Golang Machine Learning
 
+[![GoDoc](https://godoc.org/github.com/cdipaolo/goml?status.svg)](https://godoc.org/github.com/cdipaolo/goml)
 [![wercker status](https://app.wercker.com/status/50a8cfa6170784809e3308941212cef4/s "wercker status")](https://app.wercker.com/project/bykey/50a8cfa6170784809e3308941212cef4)
 
 goml (pronounced like the data format 'toml') is a batteries included machine learning library written entirely in Golang. It lets you create models of data stored as float64's, persist them to disk, and predict other values from them.
@@ -20,9 +21,7 @@ go get github.com/cdipaolo/goml/perceptron
 
 ## Documentation
 
-[![GoDoc](https://godoc.org/github.com/cdipaolo/goml?status.svg)](https://godoc.org/github.com/cdipaolo/goml)
-
-All the code is well documented, and the source is/should be really readable if you'd like to make sense of it all! Look at each package (like right now, in GitHub,) and you will see a link to Godoc as well as an explanation of the package and an example usage. You can even click on the main bullets below and it'll take you to those packages, because I'm just that nice of a guy :smile:! Also you could just use the Godoc link above and navigate to the package you'd like to see more about.
+All the code is well documented, and the source is/should be really readable if you'd like to make sense of it all! Look at each package (like right now, in GitHub,) and you will see a link to Godoc as well as an explanation of the package and an example usage. You can even click on the main bullets below and it'll take you to those packages, because I'm just that nice of a guy :smile:! Also you could just use the Godoc link at the top of this README and navigate to the package you'd like to see more about.
 
 ## Currently Implemented Models
 
