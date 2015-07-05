@@ -40,6 +40,39 @@ type Model interface {
 	RestoreFromFile(string) error
 }
 
+// OnlineModel differs from Model because the learning
+// can take place in a goroutine because the data
+// is passed through a channel, ending when the
+// channel is closed.
+type OnlineModel interface {
+	Predict([]float64) ([]float64, error)
+
+	// Learn has no outputs so you can run the data
+	// within a separate goroutine! A channel of
+	// errors is passed so you know when there's been
+	// an error in learning, though learning will
+	// just ignore the datapoint that caused the
+	// error and continue on.
+	//
+	// Most times errors are caused when passed
+	// datapoints are not of a consistent dimension.
+	Learn(errors chan error)
+
+	// UpdateStream updates the datastream channel
+	// used in learning for the algorithm
+	UpdateStream(chan Datapoint)
+
+	// PersistToFile and RestoreFromFile both take
+	// in paths (absolute paths!) to files and
+	// persists the necessary data to the filepath
+	// such that you can RestoreFromFile later and
+	// have the same instance. Helpful when you want
+	// to train a model, save it to a file, then
+	// open it later for prediction
+	PersistToFile(string) error
+	RestoreFromFile(string) error
+}
+
 // Ascendable is an interface that can be used
 // with batch gradient descent where the parameter
 // vector theta is in one dimension only (so
@@ -97,4 +130,18 @@ type StochasticAscendable interface {
 	// return after less if strong convergance is
 	// detected, but it'll let the user set a cap.
 	MaxIterations() int
+}
+
+// Datapoint is used in some models where it is cleaner
+// to pass data as a struct rather than just as 1D and
+// 2D arrays like Generalized Linear Models are doing,
+// for example. X corresponds to the inputs and Y
+// corresponds to the result of the hypothesis.
+//
+// This is used with the Perceptron, for example, so
+// data can be easily passed in channels while staying
+// encapsulated well.
+type Datapoint struct {
+	X []float64 `json:"x"`
+	Y []float64 `json:"y"`
 }
