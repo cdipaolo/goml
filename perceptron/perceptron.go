@@ -1,3 +1,89 @@
+// Package perceptron holds the online
+// perceptron model of learning. A perceptron
+// works by 'reacting' to bad predictions, and
+// only updating it's parameter vector when it
+// does make a bad prediction. If you want to
+// read more about the details of the perceptron
+// itself, go to the Perceptron struct documentation.
+//
+// The package implements the training of a
+// perceptron as running on a buffered channel
+// of base.Datapoint's. This lets you run the
+// learning of the model reactively off of a data
+// stream, an API for example, only pushing new
+// data into the pipeline when it's recieved.
+// You are given an OnUpdate callback with the
+// Perceptron struct, which is called whenever
+// the model updates it parameter vector. It passes
+// a copy of the new parameter vector as a copy
+// and runs the callback in a new goroutine.
+// This would let the user persist the model to
+// a database of their choosing in realtime,
+// calling update to a table consistantly within
+// the callback.
+//
+// The Perceptron also takes in a channel of
+// errors when it learns, which lets the user 
+// see any errors while learning but not actually
+// interrupting the learning itself. The model
+// just ignores errors (usually caused by a 
+// mismatch of dimension on the input vector)
+// and goes to the next datapoint. The channel
+// of errors is closed when learning is done
+// so you know when your model is finished working
+// its way though the dataset (this implies that
+// you closed the data stream, though.)
+//
+// Example usage:
+//      // create the channel of data and errors
+//      stream := make(chan base.Datapoint, 100)
+//      errors := make(chan error)
+//
+//      model := NewPerceptron(0.1, 1, func (theta []float64) {}, stream)
+//
+//      go model.Learn(errors)
+//
+//      // start passing data to our datastream
+//      //
+//      // we could have data already in our channel
+//      // when we instantiated the Perceptron, though
+//      //
+//      // and note that this data could be coming from
+//      // some web server, or whatever!!
+//      for i := -500.0; abs(i) > 1; i *= -0.997 {
+//      	if 10 + (i-20)/2 > 0 {
+//      		stream <- base.Datapoint{
+//      			X: []float64{i-20},
+//      			Y: []float64{1.0},
+//      		}
+//      	} else {
+//      		stream <- base.Datapoint{
+//      			X: []float64{i-20},
+//      			Y: []float64{0},
+// 		        }
+// 	        }
+//      }
+//
+//      // close the dataset
+//      close(stream)
+//      for {
+//          err, more := <- errors
+//          if more {
+//	            // there is another error
+//              fmt.Printf("Error passed: %v", err)
+//          } else {
+//              // training is done!
+//              break
+//          }
+//      }
+//
+//      // now you can predict!!
+//      // note that guess is a []float64 of len() == 1
+//      // when it isn't nil
+//      guess, err := model.Predict([]float64{i})
+//      if err != nil {
+//           panic("EGATZ!! I FOUND AN ERROR! BETTER CHECK YOUR INPUT DIMENSIONS!")
+//      }
 package perceptron
 
 import (
