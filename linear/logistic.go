@@ -20,7 +20,7 @@ import (
 // Ascent, not Newton's method, etc.
 //
 // The model expects all expected results in the
-// []float64 to come as either a 0 or a 1, and 
+// []float64 to come as either a 0 or a 1, and
 // will predict the probability that, based on inputs
 // x, whether y is 1
 type Logistic struct {
@@ -176,7 +176,7 @@ func (l *Logistic) Learn() error {
 	} else if l.method == base.StochasticGA {
 		err = base.StochasticGradientAscent(l)
 	} else {
-		err = fmt.Errorf("Chose a training method not implemented for LeastSquares regression")
+		err = fmt.Errorf("Chose a training method not implemented for Logistic regression")
 	}
 
 	if err != nil {

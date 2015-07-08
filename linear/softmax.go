@@ -1,0 +1,471 @@
+package linear
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"math"
+	"os"
+
+	"github.com/cdipaolo/goml/base"
+)
+
+// Softmax represents a softmax classification model
+// in 'k' demensions. It is generally thought of as
+// a generalization of the Logistic Regression model.
+// Prediction will return a vector ([]float64) that
+// corresponds to the probabilty (where i is the index)
+// that the inputted features is 'i'. Softmax classification
+// operates assuming the Multinomial probablility
+// distribution of data.
+//
+// TODO: add wikipedia link
+//
+// Expected results expects an 'integer' (it's still
+// passed as a float64) between 0 and k-1. K must be
+// passed when creating the model.
+type Softmax struct {
+	// alpha and maxIterations are used only for
+	// GradientAscent during learning. If maxIterations
+	// is 0, then GradientAscent will run until the
+	// algorithm detects convergance.
+	//
+	// regularization is used as the regularization
+	// term to avoid overfitting within regression.
+	// Having a regularization term of 0 is like having
+	// _no_ data regularization. The higher the term,
+	// the greater the bias on the regression
+	alpha          float64
+	regularization float64
+	maxIterations  int
+
+	// k is the dimension of classification (the number
+	// of possible outcomes)
+	k int
+
+	// method is the optimization method used when training
+	// the model
+	method base.OptimizationMethod
+
+	// trainingSet and expectedResults are the
+	// 'x', and 'y' of the data, expressed as
+	// vectors, that the model can optimize from
+	trainingSet     [][]float64
+	expectedResults []float64
+
+	Parameters [][]float64 `json:"theta"`
+}
+
+// NewSoftmax takes in a learning rate alpha, a regularization
+// parameter value (0 means no regularization, higher value
+// means higher bias on the model,) the maximum number of
+// iterations the data can go through in gradient descent,
+// as well as a training set and expected results for that
+// training set.
+func NewSoftmax(method base.OptimizationMethod, alpha, regularization float64, k, maxIterations int, trainingSet [][]float64, expectedResults []float64) *Softmax {
+	params := make([][]float64, k)
+
+	for i := range params {
+		params[i] = make([]float64, len((trainingSet)[0])+1)
+	}
+
+	return &Softmax{
+		alpha:          alpha,
+		regularization: regularization,
+		maxIterations:  maxIterations,
+
+		k: k,
+
+		method: method,
+
+		trainingSet:     trainingSet,
+		expectedResults: expectedResults,
+
+		// initialize θ as the zero vector (that is,
+		// the vector of all zeros)
+		Parameters: params,
+	}
+}
+
+// UpdateTrainingSet takes in a new training set (variable x)
+// as well as a new result set (y). This could be useful if
+// you want to retrain a model starting with the parameter
+// vector of a previous training session, but most of the time
+// wouldn't be used.
+func (s *Softmax) UpdateTrainingSet(trainingSet [][]float64, expectedResults []float64) error {
+	if len(trainingSet) == 0 {
+		return fmt.Errorf("Error: length of given training set is 0! Need data!")
+	}
+	if len(expectedResults) == 0 {
+		return fmt.Errorf("Error: length of given result data set is 0! Need expected results!")
+	}
+
+	s.trainingSet = trainingSet
+	s.expectedResults = expectedResults
+
+	return nil
+}
+
+// UpdateLearningRate set's the learning rate of the model
+// to the given float64.
+func (s *Softmax) UpdateLearningRate(a float64) {
+	s.alpha = a
+}
+
+// LearningRate returns the learning rate α for gradient
+// descent to optimize the model. Could vary as a function
+// of something else later, potentially.
+func (s *Softmax) LearningRate() float64 {
+	return s.alpha
+}
+
+// Examples returns the number of training examples (m)
+// that the model currently is training from.
+func (s *Softmax) Examples() int {
+	return len(s.trainingSet)
+}
+
+// MaxIterations returns the number of maximum iterations
+// the model will go through in GradientAscent, in the
+// worst case
+func (s *Softmax) MaxIterations() int {
+	return s.maxIterations
+}
+
+// Predict takes in a variable x (an array of floats,) and
+// finds the value of the hypothesis function given the
+// current parameter vector θ
+func (s *Softmax) Predict(x []float64) ([]float64, error) {
+	if len(x)+1 != len(s.Parameters) {
+		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(s.Parameters))
+	}
+
+	result := make([]float64, s.k)
+	var denom float64
+
+	for i := 0; i < s.k-1; i++ {
+		// include constant term in sum
+		sum := s.Parameters[i][0]
+
+		for j := range x {
+			sum += x[j] * s.Parameters[i][i+1]
+		}
+
+		result[i] = math.Exp(sum)
+		denom += math.Exp(sum)
+	}
+
+	var sum float64
+	for i := range result {
+		result[i] /= denom
+		sum += result[i]
+	}
+
+	result[s.k-1] = 1 - sum
+
+	return result, nil
+}
+
+// Learn takes the struct's dataset and expected results and runs
+// batch gradient descent on them, optimizing theta so you can
+// predict based on those results
+func (s *Softmax) Learn() error {
+	if s.trainingSet == nil || s.expectedResults == nil {
+		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
+		fmt.Printf(err.Error())
+		return err
+	}
+
+	examples := len(s.trainingSet)
+	if examples == 0 || len(s.trainingSet[0]) == 0 {
+		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
+		fmt.Printf(err.Error())
+		return err
+	}
+	if len(s.expectedResults) == 0 {
+		err := fmt.Errorf("ERROR: Attempting to learn with no expected results! This isn't an unsupervised model!! You'll need to include data before you learn :)\n")
+		fmt.Printf(err.Error())
+		return err
+	}
+
+	fmt.Printf("Training:\n\tModel: Softmax Classification\n\tOptimization Method: %v\n\tTraining Examples: %v\n\t Classification Dimensions: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", s.method, examples, s.k, len(s.trainingSet[0]), s.alpha, s.regularization)
+
+	var err error
+	if s.method == base.BatchGA {
+		err = func() error {
+			// if the iterations given is 0, set it to be
+			// 5000 (seems reasonable base value)
+			if s.maxIterations == 0 {
+				s.maxIterations = 5000
+			}
+
+			var iter int
+
+			// Stop iterating if the number of iterations exceeds
+			// the limit
+			for ; iter < s.maxIterations; iter++ {
+
+				// go over each parameter vector for each
+				// classification value
+				for i, theta := range s.Parameters {
+					dj, err := s.Dj(i)
+					if err != nil {
+						return err
+					}
+
+					// now simultaneously update theta
+					for j := range theta {
+						newθ := theta[j] + s.alpha*dj[j]
+						if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
+							return fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+						}
+						theta[j] = newθ
+					}
+				}
+			}
+
+			fmt.Printf("Went through %v iterations.\n", iter+1)
+
+			return nil
+		}()
+	} else if s.method == base.StochasticGA {
+		err = func() error {
+			// if the iterations given is 0, set it to be
+			// 5000 (seems reasonable base value)
+			if s.maxIterations == 0 {
+				s.maxIterations = 5000
+			}
+
+			var iter int
+
+			// Stop iterating if the number of iterations exceeds
+			// the limit
+			for ; iter < s.maxIterations; iter++ {
+				for j := range s.trainingSet {
+					// go over each parameter vector for each
+					// classification value
+					for i, theta := range s.Parameters {
+						dj, err := s.Dij(j, i)
+						if err != nil {
+							return err
+						}
+
+						// now simultaneously update theta
+						for j := range theta {
+							newθ := theta[j] + s.alpha*dj[j]
+							if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
+								return fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+							}
+							theta[j] = newθ
+						}
+					}
+				}
+			}
+
+			fmt.Printf("Went through %v iterations.\n", iter+1)
+
+			return nil
+		}()
+	} else {
+		err = fmt.Errorf("Chose a training method not implemented for Softmax regression")
+	}
+
+	if err != nil {
+		fmt.Printf("\nERROR: Error while learning –\n\t%v\n\n", err)
+		return err
+	}
+
+	fmt.Printf("Training Completed.\n%v\n\n", s)
+	return nil
+}
+
+// String implements the fmt interface for clean printing. Here
+// we're using it to print the model as the equation h(θ)=...
+// where h is the softmax hypothesis model
+func (s *Softmax) String() string {
+	if len(s.Parameters) == 0 {
+		fmt.Printf("ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
+	}
+	var buffer bytes.Buffer
+
+	buffer.WriteString(fmt.Sprintf("h(θ,x)[i] = exp(θ[i]x) / Σ exp(θ[j]x)\nθ = %v\n", s.Parameters))
+
+	return buffer.String()
+}
+
+// Dj returns the partial derivative of the cost function J(θ)
+// with respect to theta[k] where theta is the parameter vector
+// associated with our hypothesis function Predict (upon which
+// we are optimizing.
+//
+// k is the classification value you are finding the gradient
+// for (because the parameter vactor is actually a vector _of_
+// vectors!)
+func (s *Softmax) Dj(k int) ([]float64, error) {
+	if k > s.k || k < 0 {
+		return nil, fmt.Errorf("Given k (%v) is not valid with respect to the model", k)
+	}
+
+	sum := make([]float64, len(s.Parameters[0]))
+
+	for i := range s.trainingSet {
+		// account for constant term
+		x := append([]float64{1}, s.trainingSet[i]...)
+
+		var ident float64
+		if abs(s.expectedResults[i]-float64(k)) < 1e-3 {
+			ident = 1
+		}
+
+		var numerator float64
+		var denom float64
+		for a := 0; a < s.k; a++ {
+			var inside float64
+
+			// calculate theta * x
+			for l, val := range s.Parameters[int(k)] {
+				inside += val * x[l]
+			}
+
+			if a == k {
+				numerator = math.Exp(inside)
+			}
+
+			denom += math.Exp(inside)
+		}
+
+		for a := range sum {
+			sum[a] += x[a] * (ident - numerator/denom)
+		}
+	}
+
+	// add in the regularization term
+	// λ*θ[j]
+	//
+	// notice that we don't count the
+	// constant term
+	for j := range sum {
+		sum[j] += s.regularization * s.Parameters[k-1][j]
+	}
+
+	return sum, nil
+}
+
+// Dij returns the derivative of the cost function
+// J(θ) with respect to the j-th parameter of
+// the hypothesis, θ[j], for the training example
+// x[i]. Used in Stochastic Gradient Descent.
+//
+// assumes that i,j is within the bounds of the
+// data they are looking up! (because this is getting
+// called so much, it needs to be efficient with
+// comparisons)
+func (s *Softmax) Dij(i, k int) ([]float64, error) {
+	if k > s.k || k < 0 {
+		return nil, fmt.Errorf("Given k (%v) is not valid with respect to the model", k)
+	}
+
+	grad := make([]float64, len(s.Parameters[0]))
+
+	// account for constant term
+	x := append([]float64{1}, s.trainingSet[i]...)
+
+	var ident float64
+	if abs(s.expectedResults[i]-float64(k)) < 1e-3 {
+		ident = 1
+	}
+
+	var numerator float64
+	var denom float64
+	for a := 0; a < s.k; a++ {
+		var inside float64
+
+		// calculate theta * x
+		for l, val := range s.Parameters[int(k)] {
+			inside += val * x[l]
+		}
+
+		if a == k {
+			numerator = math.Exp(inside)
+		}
+
+		denom += math.Exp(inside)
+	}
+
+	for a := range grad {
+		grad[a] += x[a] * (ident - numerator/denom)
+	}
+
+	// add in the regularization term
+	// λ*θ[j]
+	//
+	// notice that we don't count the
+	// constant term
+	for j := range grad {
+		grad[j] += s.regularization * s.Parameters[k-1][j]
+	}
+
+	return grad, nil
+}
+
+// Theta returns the parameter vector θ for use in persisting
+// the model, and optimizing the model through gradient descent
+// ( or other methods like Newton's Method)
+func (s *Softmax) Theta() [][]float64 {
+	return s.Parameters
+}
+
+// PersistToFile takes in an absolute filepath and saves the
+// parameter vector θ to the file, which can be restored later.
+// The function will take paths from the current directory, but
+// functions
+//
+// The data is stored as JSON because it's one of the most
+// efficient storage method (you only need one comma extra
+// per feature + two brackets, total!) And it's extendable.
+func (s *Softmax) PersistToFile(path string) error {
+	if path == "" {
+		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath")
+	}
+
+	bytes, err := json.Marshal(s.Parameters)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, bytes, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RestoreFromFile takes in a path to a parameter vector theta
+// and assigns the model it's operating on's parameter vector
+// to that.
+//
+// The path must ba an absolute path or a path from the current
+// directory
+//
+// This would be useful in persisting data between running
+// a model on data, or for graphing a dataset with a fit in
+// another framework like Julia/Gadfly.
+func (s *Softmax) RestoreFromFile(path string) error {
+	if path == "" {
+		return fmt.Errorf("ERROR: you just tried to restore your model from a file with no path! That's a no-no. Try it with a valid filepath")
+	}
+
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bytes, &s.Parameters)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
