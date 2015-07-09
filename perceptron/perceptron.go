@@ -23,10 +23,10 @@
 // the callback.
 //
 // The Perceptron also takes in a channel of
-// errors when it learns, which lets the user 
+// errors when it learns, which lets the user
 // see any errors while learning but not actually
 // interrupting the learning itself. The model
-// just ignores errors (usually caused by a 
+// just ignores errors (usually caused by a
 // mismatch of dimension on the input vector)
 // and goes to the next datapoint. The channel
 // of errors is closed when learning is done
@@ -125,7 +125,7 @@ import (
 //
 // Unlike the General Linear Models, for example,
 // the data is expected to be passed as a Dataset
-// struct so it can be easily passed through the 
+// struct so it can be easily passed through the
 // data pipeline channel
 //
 // Data results in this binary class model are
@@ -135,33 +135,12 @@ import (
 type Perceptron struct {
 	// alpha is the learning rate of the perceptron
 	// algorithm
-	alpha       float64
+	alpha float64
 
 	// dataset is housed as a channel of different
 	// base.Datapoint's because that fits the online
 	// learning model better than straight batch data
-	dataset  chan base.Datapoint
-
-	// OnUpdate is a function that is called whenever
-	// the perceptron updates it's parameter vector
-	// theta. This acts almost like a callback and
-	// passes the newly updated parameter vector
-	// theta as a slice of floats.
-	//
-	// This might be useful is you want to maintain
-	// an up to date persisted model in a database of
-	// your choosing and you'd like to update it
-	// constantly. 
-	//
-	// This will be spawned into a new goroutine, so
-	// don't worry about the function taking a long
-	// time, or blocking.
-	//
-	// If you want to monitor errors happening within
-	// this function, just have a channel of errors
-	// you send do within this channel, or some other
-	// method if it fits your scenario better.
-	OnUpdate func ([]float64)
+	dataset chan base.Datapoint
 
 	Parameters []float64 `json:"theta"`
 }
@@ -171,16 +150,16 @@ type Perceptron struct {
 // term) being evaluated by the model, the update
 // callback called whenever the perceptron updates the
 // parameter vector theta (whenever it makes a wrong
-// guess), and a channel of datapoints that will be 
+// guess), and a channel of datapoints that will be
 // used in training and returns an instantiated model.
 //
-// Again! Features _does not_ include the constant 
+// Again! Features _does not_ include the constant
 // term!
 //
-// Also, learning rate of 0.1 seems to work well in 
+// Also, learning rate of 0.1 seems to work well in
 // many cases. (I also heard that in a lecture video
 // from a UW professor)
-func NewPerceptron(alpha float64, features int, onUpdate func ([]float64), stream chan base.Datapoint) *Perceptron {
+func NewPerceptron(alpha float64, features int, stream chan base.Datapoint) *Perceptron {
 	var params []float64
 	params = make([]float64, features+1)
 
@@ -188,8 +167,6 @@ func NewPerceptron(alpha float64, features int, onUpdate func ([]float64), strea
 		alpha: alpha,
 
 		dataset: stream,
-
-		OnUpdate: onUpdate,
 
 		// initialize θ as the zero vector (that is,
 		// the vector of all zeros)
@@ -247,7 +224,29 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 // The errors channel will be closed when learning is
 // completed so you know when it's done if you're relying
 // on that for whatever reason
-func (p *Perceptron) Learn(errors chan error) {
+//
+// onUpdate func ([]float64):
+//
+// onUpdate is a function that is called whenever
+// the perceptron updates it's parameter vector
+// theta. This acts almost like a callback and
+// passes the newly updated parameter vector
+// theta as a slice of floats.
+//
+// This might be useful is you want to maintain
+// an up to date persisted model in a database of
+// your choosing and you'd like to update it
+// constantly.
+//
+// This will be spawned into a new goroutine, so
+// don't worry about the function taking a long
+// time, or blocking.
+//
+// If you want to monitor errors happening within
+// this function, just have a channel of errors
+// you send do within this channel, or some other
+// method if it fits your scenario better.
+func (p *Perceptron) Learn(errors chan error, onUpdate func([]float64)) {
 	if p.dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		fmt.Printf(err.Error())
@@ -275,7 +274,7 @@ func (p *Perceptron) Learn(errors chan error) {
 				errors <- fmt.Errorf("The binary perceptron model requires that the data results be in {-1,1}")
 			}
 
-			if len(point.X) != len(p.Parameters) - 1 {
+			if len(point.X) != len(p.Parameters)-1 {
 				errors <- fmt.Errorf("The binary perceptron model requires that the data results be in {-1,1}")
 			}
 
@@ -291,7 +290,7 @@ func (p *Perceptron) Learn(errors chan error) {
 				// call the OnUpdate callback with the new theta
 				// appended to a blank slice so the vector is
 				// passed by value and not by reference
-				go p.OnUpdate(append([]float64{}, p.Parameters...))
+				go onUpdate(append([]float64{}, p.Parameters...))
 			}
 
 		} else {
