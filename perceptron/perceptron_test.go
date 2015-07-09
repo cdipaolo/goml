@@ -32,9 +32,9 @@ func TestOneDXShouldPass1(t *testing.T) {
 	stream := make(chan base.Datapoint, 100)
 	errors := make(chan error)
 
-	model := NewPerceptron(0.1, 1, stream)
+	model := NewPerceptron(0.1, 1)
 
-	go model.Learn(errors, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
 
 	// start passing data to our datastream
 	//
@@ -84,9 +84,9 @@ func TestOneDXShouldFail1(t *testing.T) {
 	stream := make(chan base.Datapoint, 1000)
 	errors := make(chan error)
 
-	model := NewPerceptron(0.1, 1, stream)
+	model := NewPerceptron(0.1, 1)
 
-	go model.Learn(errors, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
 
 	// give invalid data when it should be -1
 	for i := -500.0; abs(i) > 1; i *= -0.99 {
@@ -115,9 +115,9 @@ func TestOneDXShouldFail2(t *testing.T) {
 	stream := make(chan base.Datapoint, 1000)
 	errors := make(chan error)
 
-	model := NewPerceptron(0.1, 1, stream)
+	model := NewPerceptron(0.1, 1)
 
-	go model.Learn(errors, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
 
 	// give invalid data when it should be -1
 	for i := -500.0; abs(i) > 1; i *= -0.99 {
@@ -141,6 +141,18 @@ func TestOneDXShouldFail2(t *testing.T) {
 	assert.NotNil(t, err, "Learning error should not be nil")
 }
 
+func TestOneDXShouldFail3(t *testing.T) {
+	// create the channel of errors
+	errors := make(chan error)
+
+	model := NewPerceptron(0.1, 1)
+
+	go model.OnlineLearn(errors, nil, func(theta []float64) {})
+
+	err := <-errors
+	assert.NotNil(t, err, "Learning error should not be nil")
+}
+
 func TestFourDXShouldPass1(t *testing.T) {
 	// create the channel of data and errors
 	stream := make(chan base.Datapoint, 100)
@@ -148,9 +160,9 @@ func TestFourDXShouldPass1(t *testing.T) {
 
 	var updates int
 
-	model := NewPerceptron(0.1, 4, stream)
+	model := NewPerceptron(0.1, 4)
 
-	go model.Learn(errors, func(theta []float64) {
+	go model.OnlineLearn(errors, stream, func(theta []float64) {
 		updates++
 	})
 
@@ -210,9 +222,9 @@ func TestPersistPerceptronShouldPass1(t *testing.T) {
 	stream := make(chan base.Datapoint, 100)
 	errors := make(chan error)
 
-	model := NewPerceptron(0.1, 1, stream)
+	model := NewPerceptron(0.1, 1)
 
-	go model.Learn(errors, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
 
 	// start passing data to our datastream
 	//

@@ -39,9 +39,11 @@
 //      stream := make(chan base.Datapoint, 100)
 //      errors := make(chan error)
 //
-//      model := NewPerceptron(0.1, 1, func (theta []float64) {}, stream)
+//      model := NewPerceptron(0.1, 1, stream)
 //
-//      go model.Learn(errors)
+//      go model.OnlineLearn(errors, stream, func (theta []float64) {
+//          fmt.Printf("Theta updated to %v!\n", theta)
+//      })
 //
 //      // start passing data to our datastream
 //      //
@@ -137,11 +139,6 @@ type Perceptron struct {
 	// algorithm
 	alpha float64
 
-	// dataset is housed as a channel of different
-	// base.Datapoint's because that fits the online
-	// learning model better than straight batch data
-	dataset chan base.Datapoint
-
 	Parameters []float64 `json:"theta"`
 }
 
@@ -159,28 +156,17 @@ type Perceptron struct {
 // Also, learning rate of 0.1 seems to work well in
 // many cases. (I also heard that in a lecture video
 // from a UW professor)
-func NewPerceptron(alpha float64, features int, stream chan base.Datapoint) *Perceptron {
+func NewPerceptron(alpha float64, features int) *Perceptron {
 	var params []float64
 	params = make([]float64, features+1)
 
 	return &Perceptron{
 		alpha: alpha,
 
-		dataset: stream,
-
 		// initialize θ as the zero vector (that is,
 		// the vector of all zeros)
 		Parameters: params,
 	}
-}
-
-// UpdateTrainingSet takes in a new training set (variable x)
-// as well as a new result set (y). This could be useful if
-// you want to retrain a model starting with the parameter
-// vector of a previous training session, but most of the time
-// wouldn't be used.
-func (p *Perceptron) UpdateStream(data chan base.Datapoint) {
-	p.dataset = data
 }
 
 // UpdateLearningRate set's the learning rate of the model
@@ -204,7 +190,7 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 		sum += x[i] * p.Parameters[i+1]
 	}
 
-	var result float64 = -1.0
+	result := -1.0
 	if sum > 0 {
 		result = 1
 	}
@@ -212,7 +198,7 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 	return []float64{result}, nil
 }
 
-// Learn runs off of the datastream within the Perceptron
+// OnlineLearn runs off of the datastream within the Perceptron
 // structure. Whenever the model makes a wrong prediction
 // the parameter vector theta is updated to reflect that,
 // as discussed in the documentation for the Perceptron
@@ -246,17 +232,19 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 // this function, just have a channel of errors
 // you send do within this channel, or some other
 // method if it fits your scenario better.
-func (p *Perceptron) Learn(errors chan error, onUpdate func([]float64)) {
-	if p.dataset == nil {
-		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
+func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64)) {
+	if dataset == nil {
+		err := fmt.Errorf("ERROR: Attempting to learn with an znil data stream!\n")
 		fmt.Printf(err.Error())
 		errors <- err
+		close(errors)
+		return
 	}
 
 	fmt.Printf("Training:\n\tModel: Perceptron Classifier\n\tOptimization Method: Online Perceptron\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(p.Parameters), p.alpha)
 
 	for {
-		point, more := <-p.dataset
+		point, more := <-dataset
 		if more {
 			// have a datapoint, predict and update!
 			//

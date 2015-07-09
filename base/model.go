@@ -47,7 +47,7 @@ type Model interface {
 type OnlineModel interface {
 	Predict([]float64) ([]float64, error)
 
-	// Learn has no outputs so you can run the data
+	// OnlineLearn has no outputs so you can run the data
 	// within a separate goroutine! A channel of
 	// errors is passed so you know when there's been
 	// an error in learning, though learning will
@@ -56,7 +56,10 @@ type OnlineModel interface {
 	//
 	// Most times errors are caused when passed
 	// datapoints are not of a consistent dimension.
-	Learn(errors chan error)
+	//
+	// The function passed is a callback that is called
+	// whenever the parameter vector theta is updated
+	OnlineLearn(chan error, func([]float64))
 
 	// UpdateStream updates the datastream channel
 	// used in learning for the algorithm
