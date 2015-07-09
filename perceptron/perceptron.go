@@ -34,7 +34,8 @@
 // its way though the dataset (this implies that
 // you closed the data stream, though.)
 //
-// Example usage:
+// Example Online, Binary Perceptron (no layers, etc.):
+//
 //      // create the channel of data and errors
 //      stream := make(chan base.Datapoint, 100)
 //      errors := make(chan error)
@@ -52,26 +53,27 @@
 //      //
 //      // and note that this data could be coming from
 //      // some web server, or whatever!!
-//      for i := -500.0; abs(i) > 1; i *= -0.997 {
-//      	if 10 + (i-20)/2 > 0 {
-//      		stream <- base.Datapoint{
-//      			X: []float64{i-20},
-//      			Y: []float64{1.0},
-//      		}
-//      	} else {
-//      		stream <- base.Datapoint{
-//      			X: []float64{i-20},
-//      			Y: []float64{0},
-// 		        }
-// 	        }
-//      }
+// 		go func() {
+// 			for i := -500.0; abs(i) > 1; i *= -0.997 {
+// 				if 10 + (i-20)/2 > 0 {
+// 					stream <- base.Datapoint{
+// 						X: []float64{i-20},
+// 						Y: []float64{1.0},
+// 					}
+// 				} else {
+// 					stream <- base.Datapoint{
+// 						X: []float64{i-20},
+// 						Y: []float64{0},
+// 			        }
+// 			    }
+// 			}
+// 		}()
 //
 //      // close the dataset
 //      close(stream)
 //      for {
 //          err, more := <- errors
-//          if more {
-//	            // there is another error
+//          if err != nil {
 //              fmt.Printf("Error passed: %v", err)
 //          } else {
 //              // training is done!
@@ -232,6 +234,63 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 // this function, just have a channel of errors
 // you send do within this channel, or some other
 // method if it fits your scenario better.
+//
+// Example Online, Binary Perceptron (no layers, etc.):
+//
+//      // create the channel of data and errors
+//      stream := make(chan base.Datapoint, 100)
+//      errors := make(chan error)
+//
+//      model := NewPerceptron(0.1, 1, stream)
+//
+//      go model.OnlineLearn(errors, stream, func (theta []float64) {
+//          // do something with the new theta (persist
+//          // to database?) in here.
+//          fmt.Printf("Theta updated to %v!\n", theta)
+//      })
+//
+//      // start passing data to our datastream
+//      //
+//      // we could have data already in our channel
+//      // when we instantiated the Perceptron, though
+//      //
+//      // and note that this data could be coming from
+//      // some web server, or whatever!!
+// 		go func() {
+// 			for i := -500.0; abs(i) > 1; i *= -0.997 {
+// 				if 10 + (i-20)/2 > 0 {
+// 					stream <- base.Datapoint{
+// 						X: []float64{i-20},
+// 						Y: []float64{1.0},
+// 					}
+// 				} else {
+// 					stream <- base.Datapoint{
+// 						X: []float64{i-20},
+// 						Y: []float64{0},
+// 			        }
+// 			    }
+// 			}
+// 		}()
+//
+//      // close the dataset
+//      close(stream)
+//      for {
+//          err, more := <- errors
+//          if err != nil {
+//              fmt.Printf("Error passed: %v", err)
+//          } else {
+//              // training is done!
+//              break
+//          }
+//      }
+//
+//      // now you can predict!!
+//      // note that guess is a []float64 of len() == 1
+//      // when it isn't nil
+//      guess, err := model.Predict([]float64{i})
+//      if err != nil {
+//           panic("EGATZ!! I FOUND AN ERROR! BETTER CHECK YOUR INPUT DIMENSIONS!")
+//      }
 func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64)) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")

@@ -26,7 +26,7 @@
 // respectively.) textY[i] should be the observed
 // result of the inputs testX[i].:
 //
-// Example Model Usage (Batch Ordinary Least Squares)
+// Example Model Usage (Batch Ordinary Least Squares):
 //
 //     // optimization method: Batch Gradient Ascent
 //     // Learning rate: 1e-4
@@ -103,6 +103,28 @@ type LeastSquares struct {
 // to learn using the online method then just declare the number of
 // features (it's an integer) as an extra arg after the rest
 // of the arguments
+//
+// Example Least Squares (Stochastic GA):
+//
+//     // optimization method: Stochastic Gradient Ascent
+//     // Learning rate: 1e-4
+//     // Regulatization term: 6
+//     // Max Iterations: 800
+//     // Dataset to learn fron: testX
+//     // Expected results dataset: testY
+//     model := NewLeastSquares(base.StochasticGA, 1e-4, 6, 800, testX, testY)
+//
+//     err := model.Learn()
+//     if err != nil {
+//         panic("SOME ERROR!! RUN!")
+//     }
+//
+//     // now I want to predict off of this
+//     // Ordinary Least Squares model!
+//     guess, err = model.Predict([]float64{10000,6})
+//     if err != nil {
+//         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+//     }
 func NewLeastSquares(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64, features ...int) *LeastSquares {
 	var params []float64
 	if len(features) != 0 {
@@ -259,6 +281,70 @@ func (l *LeastSquares) Learn() error {
 // through the channel, so if you want to have each example
 // looked at more than once you must manually pass the data
 // yourself.
+//
+// Example Online Linear Least Squares:
+//
+// 		// create the channel of data and errors
+// 		stream := make(chan base.Datapoint, 100)
+// 		errors := make(chan error)
+//
+//      // notice how we are adding another integer
+//      // to the end of the NewLogistic call. This
+//      // tells the model to use that number of features
+//      // (4) in leu of finding that from the dataset
+//      // like you would with batch/stochastic GD
+//      //
+//      // Also – the 'base.StochasticGA' doesn't affect
+//      // anything. You could put batch.
+// 		model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 4)
+//
+// 		go model.OnlineLearn(errors, stream, func(theta []float64) {
+// 			// do something with the new theta (persist
+//          // to database?) in here.
+// 		})
+//
+//		go func() {
+//			for iterations := 0; iterations < 20; iterations++ {
+//				for i := -200.0; abs(i) > 1; i *= -0.75 {
+//					for j := -200.0; abs(j) > 1; j *= -0.75 {
+//						for k := -200.0; abs(k) > 1; k *= -0.75 {
+//							for l := -200.0; abs(l) > 1; l *= -0.75 {
+// 								stream <- base.Datapoint{
+// 									X: []float64{i, j, k, l},
+// 									Y: []float64{i/2 + 2*k - 4*j + 2*l + 3},
+// 								}
+//							}
+//						}
+//					}
+//				}
+//			}
+//
+//			// close the dataset to tell the model
+//          // to stop learning when it finishes reading
+//          // what's left in the channel
+//			close(stream)
+//		}()
+//
+//		// this will block until the error
+//      // channel is closed in the learning
+//      // function (it will, don't worry!)
+//		for {
+//			err, more := <-errors
+//			if err != nil {
+//				panic("THERE WAS AN ERROR!!! RUN!!!!")
+//          }
+//			if !more {
+//				break
+//			}
+//		}
+//
+//      // Below here all the learning is completed
+//
+//      // predict like usual
+//      guess, err = model.Predict([]float64{42,6,10,-32})
+//      if err != nil {
+//          panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+//      }
 func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64)) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")

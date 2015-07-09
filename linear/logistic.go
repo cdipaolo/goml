@@ -62,6 +62,34 @@ type Logistic struct {
 // to learn using the online method then just declare the number of
 // features (it's an integer) as an extra arg after the rest
 // of the arguments
+//
+// DATA FORMAT:
+// The Logistic model expects expected results to be either a 0
+// or a 1. Predict returns the probability that the item inputted
+// is a 1. Obviously this means that the probability that the inputted
+// x is a 0 is 1-TheGuess
+//
+// Example Binary Logistic Regression (Batch GA):
+//
+//     // optimization method: Batch Gradient Ascent
+//     // Learning rate: 1e-4
+//     // Regulatization term: 6
+//     // Max Iterations: 800
+//     // Dataset to learn fron: testX
+//     // Expected results dataset: testY
+//     model := NewLogistic(base.BatchGA, 1e-4, 6, 800, testX, testY)
+//
+//     err := model.Learn()
+//     if err != nil {
+//         panic("SOME ERROR!! RUN!")
+//     }
+//
+//     // now I want to predict off of this
+//     // Ordinary Least Squares model!
+//     guess, err = model.Predict([]float64{10000,6})
+//     if err != nil {
+//         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+//     }
 func NewLogistic(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64, features ...int) *Logistic {
 	var params []float64
 	if len(features) != 0 {
@@ -221,60 +249,44 @@ func (l *Logistic) Learn() error {
 // looked at more than once you must manually pass the data
 // yourself.
 //
-// Example Online Logistic Regression
+// Example Online Logistic Regression:
 //
 // 		// create the channel of data and errors
 // 		stream := make(chan base.Datapoint, 100)
 // 		errors := make(chan error)
-//
-// 		var updates int
 //
 //      // notice how we are adding another integer
 //      // to the end of the NewLogistic call. This
 //      // tells the model to use that number of features
 //      // (4) in leu of finding that from the dataset
 //      // like you would with batch/stochastic GD
+//      //
+//      // Also – the 'base.StochasticGA' doesn't affect
+//      // anything. You could put batch.
 // 		model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 4)
 //
 // 		go model.OnlineLearn(errors, stream, func(theta []float64) {
-// 			updates++
+// 			// do something with the new theta (persist
+//          // to database?) in here.
 // 		})
 //
-//      // this is an example of pushing data to the
-//      // stream, but it obviously doesn't have to
-//      // be iterated through like this. It could
-//      // come from anywhere.
-// 		for iterations := 0; iterations < 25; iterations++ {
-// 			for i := -200.0; abs(i) > 1; i *= -0.75 {
-// 				for j := -200.0; abs(j) > 1; j *= -0.75 {
-// 					for k := -200.0; abs(k) > 1; k *= -0.75 {
-// 						for l := -200.0; abs(l) > 1; l *= -0.75 {
-// 							if i/2+2*k-4*j+2*l+3 > 0 {
-// 								stream <- base.Datapoint{
-// 									X: []float64{i, j, k, l},
-// 									Y: []float64{1.0},
-// 								}
-// 							} else {
-// 								stream <- base.Datapoint{
-// 									X: []float64{i, j, k, l},
-// 									Y: []float64{0.0},
-// 								}
-//  						}
-// 						}
-// 					}
-// 				}
-// 			}
-// 		}
 //		go func() {
 //			for iterations := 0; iterations < 20; iterations++ {
 //				for i := -200.0; abs(i) > 1; i *= -0.75 {
 //					for j := -200.0; abs(j) > 1; j *= -0.75 {
 //						for k := -200.0; abs(k) > 1; k *= -0.75 {
 //							for l := -200.0; abs(l) > 1; l *= -0.75 {
-//								stream <- base.Datapoint{
-//									X: []float64{i, j, k, l},
-//									Y: []float64{i/2 + 2*k - 4*j + 2*l + 3},
-//								}
+//								if i/2+2*k-4*j+2*l+3 > 0 {
+// 									stream <- base.Datapoint{
+// 										X: []float64{i, j, k, l},
+// 										Y: []float64{1.0},
+// 									}
+// 								} else {
+// 									stream <- base.Datapoint{
+// 										X: []float64{i, j, k, l},
+// 										Y: []float64{0.0},
+// 									}
+//  							}
 //							}
 //						}
 //					}
