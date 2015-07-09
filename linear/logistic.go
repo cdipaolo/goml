@@ -57,12 +57,19 @@ type Logistic struct {
 // iterations the data can go through in gradient descent,
 // as well as a training set and expected results for that
 // training set.
-func NewLogistic(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *Logistic {
+//
+// if you're passing in no training set directly because you want
+// to learn using the online method then just declare the number of
+// features (it's an integer) as an extra arg after the rest
+// of the arguments
+func NewLogistic(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64, features ...int) *Logistic {
 	var params []float64
-	if trainingSet == nil || len(trainingSet) == 0 {
+	if len(features) != 0 {
+		params = make([]float64, features[0]+1)
+	} else if trainingSet == nil || len(trainingSet) == 0 {
 		params = []float64{}
 	} else {
-		params = make([]float64, len((trainingSet)[0])+1)
+		params = make([]float64, len(trainingSet[0])+1)
 	}
 
 	return &Logistic{
@@ -186,6 +193,113 @@ func (l *Logistic) Learn() error {
 
 	fmt.Printf("Training Completed.\n%v\n\n", l)
 	return nil
+}
+
+// OnlineLearn runs similar to using a fixed dataset with
+// Stochastic Gradient Descent, but it handles data by
+// passing it as a channal, and returns errors through
+// a channel, which lets it run responsive to inputted data
+// from outside the model itself (like using data from the
+// stock market at timed intervals or using realtime data
+// about the weather.)
+//
+// The onUpdate callback is called whenever the parameter
+// vector theta is changed, so you are able to persist the
+// model with the most up to date vector at all times (you
+// could persist to a database within the callback, for
+// example.) Don't worry about it taking too long and blocking,
+// because the callback is spawned into another goroutine.
+//
+// NOTE that this function is suggested to run in it's own
+// goroutine, or at least is designed as such.
+//
+// NOTE part 2: You can pass in an empty dataset, so long
+// as it's not nil, and start pushing after.
+//
+// NOTE part 3: each example is only looked at as it goes
+// through the channel, so if you want to have each example
+// looked at more than once you must manually pass the data
+// yourself.
+func (l *Logistic) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64)) {
+	if dataset == nil {
+		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
+		fmt.Printf(err.Error())
+		errors <- err
+		fmt.Printf("Errors has %v errors!\n", len(errors))
+	}
+
+	fmt.Printf("Training:\n\tModel: Logistic (Binary) Classifier\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)
+
+	for {
+		point, more := <-dataset
+		if more {
+			if len(point.Y) != 1 {
+				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)
+			}
+
+			newTheta := make([]float64, len(l.Parameters))
+			for j := range l.Parameters {
+
+				// find the gradient using the point
+				// from the channel (different than
+				// calling from the dataset so we need
+				// to have a new function instead of calling
+				// Dij(i, j))
+				dj, err := func(point base.Datapoint, j int) (float64, error) {
+					prediction, err := l.Predict(point.X)
+					if err != nil {
+						return 0, err
+					}
+
+					// account for constant term
+					// x is x[i][j] via Andrew Ng's terminology
+					var x float64
+					if j == 0 {
+						x = 1
+					} else {
+						x = point.X[j-1]
+					}
+
+					var gradient float64
+					gradient = (point.Y[0] - prediction[0]) * x
+
+					// add in the regularization term
+					// λ*θ[j]
+					//
+					// notice that we don't count the
+					// constant term
+					if j != 0 {
+						gradient += l.regularization * l.Parameters[j]
+					}
+
+					return gradient, nil
+				}(point, j)
+				if err != nil {
+					errors <- err
+					continue
+				}
+
+				newTheta[j] = l.Parameters[j] + l.alpha*dj
+			}
+
+			// now simultaneously update Theta
+			for j := range l.Parameters {
+				newθ := newTheta[j]
+				if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
+					errors <- fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+					continue
+				}
+				l.Parameters[j] = newθ
+			}
+
+			go onUpdate(l.Parameters)
+
+		} else {
+			fmt.Printf("Training Completed.\n%v\n\n", l)
+			close(errors)
+			return
+		}
+	}
 }
 
 // String implements the fmt interface for clean printing. Here
