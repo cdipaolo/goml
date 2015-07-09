@@ -23,7 +23,10 @@
 // where there are 2 features being inputted
 // (ie. the size of a house and the number of
 // bedrooms being given as x[0] and x[1],
-// respectively):
+// respectively.) textY[i] should be the observed
+// result of the inputs testX[i].:
+//
+// Example Model Usage (Batch Ordinary Least Squares)
 //
 //     // optimization method: Batch Gradient Ascent
 //     // Learning rate: 1e-4
@@ -95,12 +98,19 @@ type LeastSquares struct {
 // initialized with the learning rate alpha, the training
 // set trainingSet, and the expected results upon which to
 // use the dataset to train, expectedResults.
-func NewLeastSquares(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *LeastSquares {
+//
+// if you're passing in no training set directly because you want
+// to learn using the online method then just declare the number of
+// features (it's an integer) as an extra arg after the rest
+// of the arguments
+func NewLeastSquares(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64, features ...int) *LeastSquares {
 	var params []float64
-	if trainingSet == nil || len(trainingSet) == 0 {
+	if len(features) != 0 {
+		params = make([]float64, features[0]+1)
+	} else if trainingSet == nil || len(trainingSet) == 0 {
 		params = []float64{}
 	} else {
-		params = make([]float64, len((trainingSet)[0])+1)
+		params = make([]float64, len(trainingSet[0])+1)
 	}
 
 	return &LeastSquares{
@@ -263,6 +273,10 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 	for {
 		point, more := <-dataset
 		if more {
+			if len(point.Y) != 1 {
+				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)
+			}
+
 			newTheta := make([]float64, len(l.Parameters))
 			for j := range l.Parameters {
 

@@ -234,7 +234,7 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 // method if it fits your scenario better.
 func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64)) {
 	if dataset == nil {
-		err := fmt.Errorf("ERROR: Attempting to learn with an znil data stream!\n")
+		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		fmt.Printf(err.Error())
 		errors <- err
 		close(errors)
