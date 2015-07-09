@@ -66,8 +66,14 @@ type Softmax struct {
 func NewSoftmax(method base.OptimizationMethod, alpha, regularization float64, k, maxIterations int, trainingSet [][]float64, expectedResults []float64) *Softmax {
 	params := make([][]float64, k)
 
-	for i := range params {
-		params[i] = make([]float64, len((trainingSet)[0])+1)
+	if trainingSet == nil || len(trainingSet) == 0 {
+		for i := range params {
+			params[i] = []float64{}
+		}
+	} else {
+		for i := range params {
+			params[i] = make([]float64, len((trainingSet)[0])+1)
+		}
 	}
 
 	return &Softmax{
@@ -137,39 +143,37 @@ func (s *Softmax) MaxIterations() int {
 // finds the value of the hypothesis function given the
 // current parameter vector θ
 func (s *Softmax) Predict(x []float64) ([]float64, error) {
-	if len(x)+1 != len(s.Parameters) {
+	if len(s.Parameters) != 0 && len(x)+1 != len(s.Parameters[0]) {
 		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(s.Parameters))
 	}
 
 	result := make([]float64, s.k)
 	var denom float64
 
-	for i := 0; i < s.k-1; i++ {
+	for i := 0; i < s.k; i++ {
 		// include constant term in sum
 		sum := s.Parameters[i][0]
 
 		for j := range x {
-			sum += x[j] * s.Parameters[i][i+1]
+			sum += x[j] * s.Parameters[i][j+1]
 		}
 
 		result[i] = math.Exp(sum)
-		denom += math.Exp(sum)
+		denom += result[i]
 	}
 
 	var sum float64
-	for i := range result {
+	for i := 0; i < len(result); i++ {
 		result[i] /= denom
 		sum += result[i]
 	}
-
-	result[s.k-1] = 1 - sum
 
 	return result, nil
 }
 
 // Learn takes the struct's dataset and expected results and runs
-// batch gradient descent on them, optimizing theta so you can
-// predict based on those results
+// gradient descent on them, optimizing theta so you can
+// predict accurately based on those results
 func (s *Softmax) Learn() error {
 	if s.trainingSet == nil || s.expectedResults == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
@@ -200,7 +204,7 @@ func (s *Softmax) Learn() error {
 				s.maxIterations = 5000
 			}
 
-			var iter int
+			iter := 1
 
 			// Stop iterating if the number of iterations exceeds
 			// the limit
@@ -208,8 +212,8 @@ func (s *Softmax) Learn() error {
 
 				// go over each parameter vector for each
 				// classification value
-				for i, theta := range s.Parameters {
-					dj, err := s.Dj(i)
+				for k, theta := range s.Parameters {
+					dj, err := s.Dj(k)
 					if err != nil {
 						return err
 					}
@@ -220,12 +224,13 @@ func (s *Softmax) Learn() error {
 						if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
 							return fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
 						}
-						theta[j] = newθ
+
+						s.Parameters[k][j] = newθ
 					}
 				}
 			}
 
-			fmt.Printf("Went through %v iterations.\n", iter+1)
+			fmt.Printf("Went through %v iterations.\n", iter)
 
 			return nil
 		}()
@@ -237,7 +242,7 @@ func (s *Softmax) Learn() error {
 				s.maxIterations = 5000
 			}
 
-			var iter int
+			iter := 1
 
 			// Stop iterating if the number of iterations exceeds
 			// the limit
@@ -245,8 +250,8 @@ func (s *Softmax) Learn() error {
 				for j := range s.trainingSet {
 					// go over each parameter vector for each
 					// classification value
-					for i, theta := range s.Parameters {
-						dj, err := s.Dij(j, i)
+					for k, theta := range s.Parameters {
+						dj, err := s.Dij(j, k)
 						if err != nil {
 							return err
 						}
@@ -257,13 +262,13 @@ func (s *Softmax) Learn() error {
 							if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
 								return fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
 							}
-							theta[j] = newθ
+							s.Parameters[k][j] = newθ
 						}
 					}
 				}
 			}
 
-			fmt.Printf("Went through %v iterations.\n", iter+1)
+			fmt.Printf("Went through %v iterations.\n", iter)
 
 			return nil
 		}()
@@ -314,6 +319,7 @@ func (s *Softmax) Dj(k int) ([]float64, error) {
 		x := append([]float64{1}, s.trainingSet[i]...)
 
 		var ident float64
+		// 1{y == k}
 		if abs(s.expectedResults[i]-float64(k)) < 1e-3 {
 			ident = 1
 		}
@@ -324,8 +330,8 @@ func (s *Softmax) Dj(k int) ([]float64, error) {
 			var inside float64
 
 			// calculate theta * x
-			for l, val := range s.Parameters[int(k)] {
-				inside += val * x[l]
+			for l := range s.Parameters[k] {
+				inside += s.Parameters[k][l] * x[l]
 			}
 
 			if a == k {
@@ -333,10 +339,14 @@ func (s *Softmax) Dj(k int) ([]float64, error) {
 			}
 
 			denom += math.Exp(inside)
+
+			if math.IsInf(numerator, 0) || math.IsInf(denom, 0) {
+				fmt.Printf("inside: %v\n\ttheta: %v\n\tx: %v\n", inside, s.Parameters[k], x)
+			}
 		}
 
 		for a := range sum {
-			sum[a] += x[a] * (ident - numerator/denom)
+			sum[a] -= x[a] * (ident - numerator/denom)
 		}
 	}
 
@@ -346,7 +356,7 @@ func (s *Softmax) Dj(k int) ([]float64, error) {
 	// notice that we don't count the
 	// constant term
 	for j := range sum {
-		sum[j] += s.regularization * s.Parameters[k-1][j]
+		sum[j] += s.regularization * s.Parameters[k][j]
 	}
 
 	return sum, nil
@@ -403,7 +413,7 @@ func (s *Softmax) Dij(i, k int) ([]float64, error) {
 	// notice that we don't count the
 	// constant term
 	for j := range grad {
-		grad[j] += s.regularization * s.Parameters[k-1][j]
+		grad[j] += s.regularization * s.Parameters[k][j]
 	}
 
 	return grad, nil
