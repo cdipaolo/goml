@@ -251,74 +251,74 @@ func (l *Logistic) Learn() error {
 //
 // Example Online Logistic Regression:
 //
-// 		// create the channel of data and errors
-// 		stream := make(chan base.Datapoint, 100)
-// 		errors := make(chan error)
+// 	   // create the channel of data and errors
+//     stream := make(chan base.Datapoint, 100)
+//     errors := make(chan error)
 //
-//      // notice how we are adding another integer
-//      // to the end of the NewLogistic call. This
-//      // tells the model to use that number of features
-//      // (4) in leu of finding that from the dataset
-//      // like you would with batch/stochastic GD
-//      //
-//      // Also – the 'base.StochasticGA' doesn't affect
-//      // anything. You could put batch.
-// 		model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 4)
+//     // notice how we are adding another integer
+//     // to the end of the NewLogistic call. This
+//     // tells the model to use that number of features
+//     // (4) in leu of finding that from the dataset
+//     // like you would with batch/stochastic GD
+//     //
+//     // Also – the 'base.StochasticGA' doesn't affect
+//     // anything. You could put batch.
+//     model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 4)
 //
-// 		go model.OnlineLearn(errors, stream, func(theta []float64) {
-// 			// do something with the new theta (persist
-//          // to database?) in here.
-// 		})
+//     go model.OnlineLearn(errors, stream, func(theta []float64) {
+//         // do something with the new theta (persist
+//         // to database?) in here.
+//     })
 //
-//		go func() {
-//			for iterations := 0; iterations < 20; iterations++ {
-//				for i := -200.0; abs(i) > 1; i *= -0.75 {
-//					for j := -200.0; abs(j) > 1; j *= -0.75 {
-//						for k := -200.0; abs(k) > 1; k *= -0.75 {
-//							for l := -200.0; abs(l) > 1; l *= -0.75 {
-//								if i/2+2*k-4*j+2*l+3 > 0 {
-// 									stream <- base.Datapoint{
-// 										X: []float64{i, j, k, l},
-// 										Y: []float64{1.0},
-// 									}
-// 								} else {
-// 									stream <- base.Datapoint{
-// 										X: []float64{i, j, k, l},
-// 										Y: []float64{0.0},
-// 									}
-//  							}
-//							}
-//						}
-//					}
-//				}
-//			}
+//     go func() {
+//         for iterations := 0; iterations < 20; iterations++ {
+//             for i := -200.0; abs(i) > 1; i *= -0.75 {
+//                 for j := -200.0; abs(j) > 1; j *= -0.75 {
+//                     for k := -200.0; abs(k) > 1; k *= -0.75 {
+//                         for l := -200.0; abs(l) > 1; l *= -0.75 {
+//                             if i/2+2*k-4*j+2*l+3 > 0 {
+//                                 stream <- base.Datapoint{
+//                                     X: []float64{i, j, k, l},
+//                                     Y: []float64{1.0},
+//                                 }
+//                             } else {
+//                                 stream <- base.Datapoint{
+//                                     X: []float64{i, j, k, l},
+//                                     Y: []float64{0.0},
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
 //
-//			// close the dataset to tell the model
-//          // to stop learning when it finishes reading
-//          // what's left in the channel
-//			close(stream)
-//		}()
+//         // close the dataset to tell the model
+//         // to stop learning when it finishes reading
+//         // what's left in the channel
+//         close(stream)
+//     }()
 //
-//		// this will block until the error
-//      // channel is closed in the learning
-//      // function (it will, don't worry!)
-//		for {
-//			err, more := <-errors
-//			if err != nil {
-//				panic("THERE WAS AN ERROR!!! RUN!!!!")
-//          }
-//			if !more {
-//				break
-//			}
-//		}
+//     // this will block until the error
+//     // channel is closed in the learning
+//     // function (it will, don't worry!)
+//     for {
+//         err, more := <-errors
+//         if err != nil {
+//             panic("THERE WAS AN ERROR!!! RUN!!!!")
+//         }
+//         if !more {
+//             break
+//         }
+//     }
 //
-//      // Below here all the learning is completed
+//     // Below here all the learning is completed
 //
-//      // predict like usual
-//      guess, err = model.Predict([]float64{42,6,10,-32})
-//      if err != nil {
-//          panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
-//      }
+//     // predict like usual
+//     guess, err = model.Predict([]float64{42,6,10,-32})
+//     if err != nil {
+//         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+//     }
 func (l *Logistic) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64)) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")

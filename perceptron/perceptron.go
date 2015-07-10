@@ -256,21 +256,21 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 //      //
 //      // and note that this data could be coming from
 //      // some web server, or whatever!!
-// 		go func() {
-// 			for i := -500.0; abs(i) > 1; i *= -0.997 {
-// 				if 10 + (i-20)/2 > 0 {
-// 					stream <- base.Datapoint{
-// 						X: []float64{i-20},
-// 						Y: []float64{1.0},
-// 					}
-// 				} else {
-// 					stream <- base.Datapoint{
-// 						X: []float64{i-20},
-// 						Y: []float64{0},
-// 			        }
-// 			    }
-// 			}
-// 		}()
+// 	    go func() {
+//             for i := -500.0; abs(i) > 1; i *= -0.997 {
+//                 if 10 + (i-20)/2 > 0 {
+//                     stream <- base.Datapoint{
+//                         X: []float64{i-20},
+//                         Y: []float64{1.0},
+//                     }
+//                 } else {
+//                     stream <- base.Datapoint{
+//                         X: []float64{i-20},
+//                         Y: []float64{0},
+//                     }
+//                 }
+//             }
+//         }()
 //
 //      // close the dataset
 //      close(stream)
