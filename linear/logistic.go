@@ -251,7 +251,7 @@ func (l *Logistic) Learn() error {
 //
 // Example Online Logistic Regression:
 //
-// 	   // create the channel of data and errors
+//     // create the channel of data and errors
 //     stream := make(chan base.Datapoint, 100)
 //     errors := make(chan error)
 //

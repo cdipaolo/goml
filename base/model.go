@@ -1,6 +1,6 @@
 // Package base declares models, interfaces, and
 // methods to be used when working with the rest
-// of the goml library, as well as common functions
+// of the goml library. It also includes common functions
 // both used by the rest of the library and for
 // the user's convenience for working with data,
 // persisting it to files, and optimizing functions

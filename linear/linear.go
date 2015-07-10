@@ -284,7 +284,7 @@ func (l *LeastSquares) Learn() error {
 //
 // Example Online Linear Least Squares:
 //
-// 	   // create the channel of data and errors
+//     // create the channel of data and errors
 //     stream := make(chan base.Datapoint, 100)
 //     errors := make(chan error)
 //
