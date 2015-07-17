@@ -19,13 +19,16 @@ func Normalize(x [][]float64) {
 // but it only operates on one singular datapoint,
 // normalizing it's value to unit length.
 func NormalizePoint(x []float64) {
-
 	var sum float64
 	for i := range x {
 		sum += x[i] * x[i]
 	}
 
 	mag := math.Sqrt(sum)
+
+	if mag == 0 {
+		return
+	}
 
 	for i := range x {
 		x[i] /= mag

@@ -199,9 +199,18 @@ func (l *LeastSquares) MaxIterations() int {
 // Predict takes in a variable x (an array of floats,) and
 // finds the value of the hypothesis function given the
 // current parameter vector θ
-func (l *LeastSquares) Predict(x []float64) ([]float64, error) {
+//
+// if normalize is given as true, then the input will
+// first be normalized to unit length. Only use this if
+// you trained off of normalized inputs and are feeding
+// an un-normalized input
+func (l *LeastSquares) Predict(x []float64, normalize ...bool) ([]float64, error) {
 	if len(x)+1 != len(l.Parameters) {
 		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(l.Parameters))
+	}
+
+	if len(normalize) != 0 && normalize[0] {
+		base.NormalizePoint(x)
 	}
 
 	// include constant term in sum
@@ -282,6 +291,12 @@ func (l *LeastSquares) Learn() error {
 // looked at more than once you must manually pass the data
 // yourself.
 //
+// NOTE part 4: the optional parameter 'normalize' will
+// , if true, normalize all data streamed through the
+// channel to unit length. This will affect the outcome
+// of the hypothesis, though it could be favorable if
+// your data comes in drastically different scales.
+//
 // Example Online Linear Least Squares:
 //
 //     // create the channel of data and errors
@@ -345,7 +360,7 @@ func (l *LeastSquares) Learn() error {
 //     if err != nil {
 //         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
 //     }
-func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64)) {
+func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64), normalize ...bool) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		fmt.Printf(err.Error())
@@ -356,11 +371,16 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 
 	fmt.Printf("Training:\n\tModel: Ordinary Least Squares Regression\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)
 
+	norm := len(normalize) != 0 && normalize[0]
 	for {
 		point, more := <-dataset
 		if more {
 			if len(point.Y) != 1 {
 				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)
+			}
+
+			if norm {
+				base.NormalizePoint(point.X)
 			}
 
 			newTheta := make([]float64, len(l.Parameters))

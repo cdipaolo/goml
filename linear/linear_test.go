@@ -27,6 +27,9 @@ var increasingY []float64
 var threeDLineX [][]float64
 var threeDLineY []float64
 
+var normX [][]float64
+var normY []float64
+
 func init() {
 
 	// create the /tmp/.goml/ dir for persistance testing
@@ -58,12 +61,22 @@ func init() {
 
 	threeDLineX = [][]float64{}
 	threeDLineY = []float64{}
+
+	normX = [][]float64{}
+	normY = []float64{}
 	// the line z = 10 + (x/10) + (y/5)
 	for i := -10; i < 10; i++ {
 		for j := -10; j < 10; j++ {
 			threeDLineX = append(threeDLineX, []float64{float64(i), float64(j)})
 			threeDLineY = append(threeDLineY, 10+float64(i)/10+float64(j)/5)
+
+			normX = append(normX, []float64{float64(i), float64(j)})
 		}
+	}
+
+	base.Normalize(normX)
+	for i := range normX {
+		normY = append(normY, 10+float64(normX[i][0])/10+float64(normX[i][1])/5)
 	}
 }
 
@@ -351,6 +364,51 @@ func TestThreeDimensionalLineShouldPass2(t *testing.T) {
 			guess, err = model.Predict([]float64{float64(i), float64(j)})
 			assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
 			assert.InDelta(t, 10.0+float64(i)/10+float64(j)/5, guess[0], 1e-2, "Guess should be really close to i+x (within 1e-2) for line z=10 + (x+y)/10")
+			assert.Nil(t, err, "Prediction error should be nil")
+		}
+	}
+}
+
+func TestThreeDimensionalLineNormalizedShouldPass1(t *testing.T) {
+	var err error
+
+	model := NewLeastSquares(base.BatchGA, .001, 0, 500, normX, normY)
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+
+	for i := 0; i < 10; i++ {
+		for j := 0; j < 10; j++ {
+			x := []float64{float64(i), float64(j)}
+			base.NormalizePoint(x)
+
+			guess, err = model.Predict(x, true)
+			assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.InDelta(t, 10.0+float64(x[0])/10+float64(x[1])/5, guess[0], 1e-2, "Guess should be really close to i+x (within 1e-2) for line z=10 + (x+y)/10")
+			assert.Nil(t, err, "Prediction error should be nil")
+		}
+	}
+}
+
+// same as above but with StochasticGA
+func TestThreeDimensionalLineNormalizedShouldPass2(t *testing.T) {
+	var err error
+
+	model := NewLeastSquares(base.StochasticGA, .001, 0, 500, normX, normY)
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+
+	for i := 0; i < 10; i++ {
+		for j := 0; j < 10; j++ {
+			x := []float64{float64(i), float64(j)}
+			base.NormalizePoint(x)
+
+			guess, err = model.Predict(x, true)
+			assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.InDelta(t, 10.0+float64(x[0])/10+float64(x[1])/5, guess[0], 1e-2, "Guess should be really close to i+x (within 1e-2) for line z=10 + (x+y)/10")
 			assert.Nil(t, err, "Prediction error should be nil")
 		}
 	}

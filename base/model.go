@@ -26,7 +26,13 @@ const (
 // returns a real number response (float, again)
 // and an error if any
 type Model interface {
-	Predict([]float64) ([]float64, error)
+
+	// The variadic argument in Predict is an
+	// optional arg which (if true) tells the
+	// function to first normalize the input to
+	// vector unit length. Use (and only use) this
+	// if you trained on normalized inputs.
+	Predict([]float64, ...bool) ([]float64, error)
 	Learn() error
 
 	// PersistToFile and RestoreFromFile both take

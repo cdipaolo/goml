@@ -180,9 +180,13 @@ func (p *Perceptron) UpdateLearningRate(a float64) {
 // Predict takes in a variable x (an array of floats,) and
 // finds the value of the hypothesis function given the
 // current parameter vector θ
-func (p *Perceptron) Predict(x []float64) ([]float64, error) {
+func (p *Perceptron) Predict(x []float64, normalize ...bool) ([]float64, error) {
 	if len(x)+1 != len(p.Parameters) {
 		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(p.Parameters))
+	}
+
+	if len(normalize) != 0 && normalize[0] {
+		base.NormalizePoint(x)
 	}
 
 	// include constant term in sum
@@ -234,6 +238,13 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 // this function, just have a channel of errors
 // you send do within this channel, or some other
 // method if it fits your scenario better.
+//
+// NOTE that there is an optional last parameter which,
+// when true, will normalize all data given on the
+// stream. This will potentially help gradient descent
+// converge faster. This is given as a parameter because
+// you won't have direct access to the dataset before
+// hand like you would in batch/stochastic settings.
 //
 // Example Online, Binary Perceptron (no layers, etc.):
 //
@@ -291,7 +302,7 @@ func (p *Perceptron) Predict(x []float64) ([]float64, error) {
 //      if err != nil {
 //           panic("EGATZ!! I FOUND AN ERROR! BETTER CHECK YOUR INPUT DIMENSIONS!")
 //      }
-func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64)) {
+func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64), normalize ...bool) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		fmt.Printf(err.Error())
@@ -302,6 +313,8 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 
 	fmt.Printf("Training:\n\tModel: Perceptron Classifier\n\tOptimization Method: Online Perceptron\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(p.Parameters), p.alpha)
 
+	norm := len(normalize) != 0 && normalize[0]
+
 	for {
 		point, more := <-dataset
 		if more {
@@ -309,6 +322,10 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 			//
 			// Predict also checks if the point is of the
 			// correct dimensions
+			if norm {
+				base.NormalizePoint(point.X)
+			}
+
 			guess, err := p.Predict(point.X)
 			if err != nil {
 				// send the error channel some info and
