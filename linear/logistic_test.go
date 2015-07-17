@@ -19,6 +19,9 @@ var twoDY []float64
 var threeDX [][]float64
 var threeDY []float64
 
+var nX [][]float64
+var nY []float64
+
 // tests basically make a bunch of planes where
 // when the input is above the plane the resultant
 // output is 1.0, else 0.0
@@ -61,16 +64,32 @@ func init() {
 
 	threeDX = [][]float64{}
 	threeDY = []float64{}
+
+	nX = [][]float64{}
+	nY = []float64{}
 	// 1 when i+j > 5
 	for i := -10; i < 10; i++ {
 		for j := -10; j < 10; j++ {
 			threeDX = append(threeDX, []float64{float64(i), float64(j)})
+			nX = append(nX, []float64{float64(i), float64(j)})
 
 			if i+j > 5 {
 				threeDY = append(threeDY, 1.0)
 			} else {
 				threeDY = append(threeDY, 0.0)
 			}
+		}
+	}
+
+	base.Normalize(nX)
+
+	for i := range nX {
+		if nX[i][0]+nX[i][1] > 5 {
+			threeDY = append(threeDY, 1.0)
+			nY = append(nY, 1.0)
+		} else {
+			threeDY = append(threeDY, 0.0)
+			nY = append(nY, 0.0)
 		}
 	}
 }
@@ -419,6 +438,67 @@ func TestThreeDimensionalPlaneShouldPass2(t *testing.T) {
 			guess, err = model.Predict([]float64{float64(i), float64(j)})
 
 			if i+j > 5 {
+				assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+				assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+			} else {
+				assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+				assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+			}
+
+			assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.Nil(t, err, "Prediction error should be nil")
+		}
+	}
+}
+
+func TestThreeDimensionalPlaneNormalizedShouldPass1(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.BatchGA, .0001, 0, 3000, nX, nY)
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+
+	for i := -20; i < 20; i++ {
+		for j := -20; j < 20; j++ {
+			x := []float64{float64(i), float64(j)}
+			base.NormalizePoint(x)
+
+			guess, err = model.Predict(x, true)
+
+			if x[0]+x[1] > 5 {
+				assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+				assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
+			} else {
+				assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+				assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+			}
+
+			assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.Nil(t, err, "Prediction error should be nil")
+		}
+	}
+}
+
+// same as above but with StochasticGA
+func TestThreeDimensionalPlaneNormalizedShouldPass2(t *testing.T) {
+	var err error
+
+	model := NewLogistic(base.StochasticGA, .0001, 0, 3000, nX, nY)
+	err = model.Learn()
+	assert.Nil(t, err, "Learning error should be nil")
+
+	var guess []float64
+
+	for i := -20; i < 20; i++ {
+		for j := -20; j < 20; j++ {
+			x := []float64{float64(i), float64(j)}
+			base.NormalizePoint(x)
+
+			guess, err = model.Predict(x, true)
+
+			if x[0]+x[1] > 5 {
 				assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
 				assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
 			} else {
