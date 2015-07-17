@@ -80,6 +80,82 @@ func LoadDataFromCSV(filepath string) ([][]float64, []float64, error) {
 	return x, y, nil
 }
 
+// LoadDataFromCSVToStream loads a CSV data file
+// just like LoadDataFromCSV, but it pushes each
+// row into a data channel as it scans. This is
+// useful for very large CSV files where you would
+// want to learn (using the online model methods)
+// as you read from the data as to minimize memory
+// usage.
+//
+// The errors channel will be passed any errors.
+//
+// When the function returns, either in the case of
+// an error, or at the end of reading, both the
+// data stream channel and the errors channel will
+// be closed.
+func LoadDataFromCSVToStream(filepath string, data chan Datapoint, errors chan error) {
+	_, err := os.Stat(filepath)
+	if err != nil {
+		errors <- err
+		close(errors)
+		close(data)
+		return
+	}
+
+	file, err := os.Open(filepath)
+	if err != nil {
+		errors <- err
+		close(errors)
+		close(data)
+		return
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+
+	record, err := reader.Read()
+	if err != nil {
+		errors <- err
+		close(errors)
+		close(data)
+		return
+	}
+
+	fmt.Printf("Loading Data From CSV <%v> Into Data Channel\n", filepath)
+	// parse until the end of the file
+	for err != io.EOF {
+		var row []float64
+
+		for i, val := range record {
+			float, err := strconv.ParseFloat(val, 64)
+			if err != nil {
+				errors <- err
+				close(errors)
+				close(data)
+				return
+			}
+
+			if i < len(record)-1 {
+				row = append(row, float)
+			} else {
+				data <- Datapoint{
+					X: row,
+					Y: []float64{float},
+				}
+			}
+		}
+
+		record, err = reader.Read()
+	}
+
+	fmt.Printf("Finished Loading Data From <%v> Into Data Channel\n\tClosing error channel\n\tClosing data channel\n", filepath)
+
+	close(errors)
+	close(data)
+	return
+}
+
 // SaveDataToCSV takes in a absolute filepath, as well
 // as a 2D array of 'X' values and a 1D array of 'Y',
 // or expected values, concatenates the format to the
@@ -91,8 +167,17 @@ func LoadDataFromCSV(filepath string) ([][]float64, []float64, error) {
 // the floats to strings. Otherwise (if it's false) it
 // uses 32 bits.
 func SaveDataToCSV(filepath string, x [][]float64, y []float64, highPrecision bool) error {
-	if len(x) == 0 || len(x[0]) == 0 || len(y) == 0 || len(y) != len(x) {
-		return fmt.Errorf("ERROR: Training set (either x or y or both) has no examples or the lengths of the dataset don't match")
+	lenX := len(x)
+	lenY := len(y)
+	var numFeatures int
+
+	if lenX != 0 {
+		numFeatures = len(x[0])
+	}
+
+	if lenX == 0 || lenY == 0 || numFeatures == 0 || lenX != lenY {
+
+		return fmt.Errorf("ERROR: Training set (either x or y or both) has no examples or the lengths of the dataset don't match\n\tlength of x: %v\n\tlength of y: %v\n\tnumber of features in x: %v\n", lenX, lenY, numFeatures)
 	}
 
 	_, err := os.Stat(filepath)
