@@ -9,6 +9,7 @@ This part of the `goml` package implements varied generalized linear models usin
 
 - [ordinary least squares](linear.go)
 - [logistic regression](logistic.go)
+- [softmax regression (multiclass logistic regression)](softmax.go)
 
 ### example ordinary least squares
 
