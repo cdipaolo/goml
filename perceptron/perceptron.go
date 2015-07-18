@@ -344,10 +344,12 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 
 			if len(point.Y) != 1 {
 				errors <- fmt.Errorf("The binary perceptron model requires that the data results be in {-1,1}")
+				continue
 			}
 
 			if len(point.X) != len(p.Parameters)-1 {
 				errors <- fmt.Errorf("The binary perceptron model requires that the data results be in {-1,1}")
+				continue
 			}
 
 			// update the parameters if the guess
