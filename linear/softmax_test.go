@@ -51,15 +51,15 @@ func init() {
 
 	bdx = [][]float64{}
 	bdy = []float64{}
-	for i := -10; i < 25; i++ {
-		bdx = append(bdx, []float64{float64(i)})
-		if i > 15 {
+	for i := -2.0; i < 2.0; i += 0.00073 {
+		bdx = append(bdx, []float64{i})
+		if i > 0.75 {
 			bdy = append(bdy, 4.0)
-		} else if i > 10 {
+		} else if i > 0.12 {
 			bdy = append(bdy, 3.0)
-		} else if i > 5 && i < 10 {
+		} else if i > -0.25 {
 			bdy = append(bdy, 2.0)
-		} else if i > 0 && i < 5 {
+		} else if i > -0.65 {
 			bdy = append(bdy, 1.0)
 		} else {
 			bdy = append(bdy, 0.0)
@@ -108,9 +108,9 @@ func TestFourDimensionalSoftmaxShouldPass1(t *testing.T) {
 	var incorrect int
 	var count int
 
-	for i := -1.0; i < 1.0; i += 0.3 {
-		for j := -1.0; j < 1.0; j += 0.3 {
-			for k := -1.0; k < 1.0; k += 0.3 {
+	for i := -1.0; i < 1.0; i += 0.30 {
+		for j := -1.0; j < 1.0; j += 0.30 {
+			for k := -1.0; k < 1.0; k += 0.30 {
 				guess, err = model.Predict([]float64{i, j, k})
 				assert.Len(t, guess, 3, "Length of Softmax hypothesis output should be 3")
 
@@ -145,7 +145,7 @@ func TestFourDimensionalSoftmaxShouldPass1(t *testing.T) {
 	}
 
 	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
-	assert.True(t, float64(incorrect)/float64(count) < 0.13, "Accuracy should be greater than 87%")
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
 }
 
 // same as above but with StochasticGA
@@ -198,7 +198,7 @@ func TestFourDimensionalSoftmaxShouldPass2(t *testing.T) {
 	}
 
 	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
-	assert.True(t, float64(incorrect)/float64(count) < 0.13, "Accuracy should be greater than 87%")
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
 }
 
 // test ( 10*i + j/20 + k ) > 0 but don't have enough iterations
@@ -264,35 +264,47 @@ func TestFourDimensionalSoftmaxShouldFail2(t *testing.T) {
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
-	var faliures int
+	var incorrect int
+	var count int
 
-	for i := -20; i < 20; i += 10 {
-		for j := -20; j < 20; j += 10 {
-			for k := -20; k < 20; k += 10 {
-				guess, err = model.Predict([]float64{float64(i), float64(j), float64(k)})
+	for i := -1.0; i < 1.0; i += 0.3 {
+		for j := -1.0; j < 1.0; j += 0.3 {
+			for k := -1.0; k < 1.0; k += 0.3 {
+				guess, err = model.Predict([]float64{i, j, k})
 				assert.Len(t, guess, 3, "Length of Softmax hypothesis output should be 3")
 
-				hp := maxI(guess)
+				prediction := maxI(guess)
 
-				if 10*i+j/20+k > 0 && -1*i-10*j-k > 0 && hp != 2 {
-					faliures++
-				} else if 10*i+j/20+k > 0 && -1*i-10*j-k < 0 && hp != 1 {
-					faliures++
-				} else if hp != 0 {
-					faliures++
+				if i/2+j+2*k > 0 && -1*i-j-0.5*k > 0 {
+					if prediction != 2 {
+						incorrect++
+					}
+
+				} else if i/2+j+2*k > 0 && -1*i-j-0.5*k < 0 {
+					if prediction != 1 {
+						incorrect++
+					}
+
+				} else {
+					if prediction != 0 {
+						incorrect++
+					}
+
 				}
 
 				for _, val := range guess {
-					assert.True(t, val < 1.1, "Probability should always be less than 1")
-					assert.True(t, val > -0.1, "Probability should always be greater than 0")
+					assert.True(t, val < 1.1, "Probability (%v) should always be less than 1", val)
+					assert.True(t, val > -0.1, "Probability (%v) should always be greater than 0", val)
 				}
 
 				assert.Nil(t, err, "Prediction error should be nil")
+				count++
 			}
 		}
 	}
 
-	assert.True(t, faliures > 40, "There should be more faliures than half of the training set")
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) > 0.3, "Accuracy should be bad (error rate > 0.3)")
 }
 
 // test ( 10*i + j/20 + k ) > 0 but include an invalid data set
@@ -378,27 +390,39 @@ func TestFourDimensionalSoftmaxShouldFail7(t *testing.T) {
 func TestTwoDimensionalSoftmaxShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewSoftmax(base.BatchGA, .0001, 0, 5, 500, bdx, bdy)
+	model := NewSoftmax(base.BatchGA, .0001, 0, 5, 10, bdx, bdy)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
+	var count int
+	var incorrect int
 
-	for i := -20; i < 20; i += 3 {
+	for i := -2.0; i < 2; i += 0.0372345432 {
 		guess, err = model.Predict([]float64{float64(i)})
 
-		highestP := maxI(guess)
+		prediction := maxI(guess)
 
-		if i > 15 {
-			assert.Equal(t, 4, highestP, "Best guess should be 4.0")
-		} else if i > 10 {
-			assert.Equal(t, 3, highestP, "Best guess should be 3.0")
-		} else if i > 5 {
-			assert.Equal(t, 2, highestP, "Best guess should be 2.0")
-		} else if i > 0 {
-			assert.Equal(t, 1, highestP, "Best guess should be 1.0")
+		if i > 0.75 {
+			if prediction != 4 {
+				incorrect++
+			}
+		} else if i > 0.12 {
+			if prediction != 3 {
+				incorrect++
+			}
+		} else if i > -0.25 {
+			if prediction != 2 {
+				incorrect++
+			}
+		} else if i > -0.65 {
+			if prediction != 1 {
+				incorrect++
+			}
 		} else {
-			assert.Equal(t, 0, highestP, "Best guess should be 0.0")
+			if prediction != 0 {
+				incorrect++
+			}
 		}
 
 		for _, val := range guess {
@@ -408,34 +432,51 @@ func TestTwoDimensionalSoftmaxShouldPass1(t *testing.T) {
 
 		assert.Len(t, guess, 5, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
 		assert.Nil(t, err, "Prediction error should be nil")
+
+		count++
 	}
+
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) < 0.35, "Accuracy should be greater than 65% (this is a more challenging model)")
 }
 
 // same as above but with StochasticGA
 func TestTwoDimensionalSoftmaxShouldPass2(t *testing.T) {
 	var err error
 
-	model := NewSoftmax(base.StochasticGA, .0001, 0, 5, 1500, bdx, bdy)
+	model := NewSoftmax(base.StochasticGA, .0001, 0, 5, 10, bdx, bdy)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
+	var count int
+	var incorrect int
 
-	for i := -20; i < 20; i++ {
+	for i := -2.0; i < 2; i += 0.0372345432 {
 		guess, err = model.Predict([]float64{float64(i)})
 
-		highestP := maxI(guess)
+		prediction := maxI(guess)
 
-		if i > 15 {
-			assert.Equal(t, 4, highestP, "Best guess should be 4.0")
-		} else if i > 10 {
-			assert.Equal(t, 3, highestP, "Best guess should be 3.0")
-		} else if i > 5 {
-			assert.Equal(t, 2, highestP, "Best guess should be 2.0")
-		} else if i > 0 {
-			assert.Equal(t, 1, highestP, "Best guess should be 1.0")
+		if i > 0.75 {
+			if prediction != 4 {
+				incorrect++
+			}
+		} else if i > 0.12 {
+			if prediction != 3 {
+				incorrect++
+			}
+		} else if i > -0.25 {
+			if prediction != 2 {
+				incorrect++
+			}
+		} else if i > -0.65 {
+			if prediction != 1 {
+				incorrect++
+			}
 		} else {
-			assert.Equal(t, 0, highestP, "Best guess should be 0.0")
+			if prediction != 0 {
+				incorrect++
+			}
 		}
 
 		for _, val := range guess {
@@ -445,68 +486,120 @@ func TestTwoDimensionalSoftmaxShouldPass2(t *testing.T) {
 
 		assert.Len(t, guess, 5, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
 		assert.Nil(t, err, "Prediction error should be nil")
+
+		count++
 	}
+
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) < 0.35, "Accuracy should be greater than 65% (this is a more challenging model)")
 }
 
 // regularization term too large
 func TestTwoDimensionalSoftmaxShouldFail1(t *testing.T) {
 	var err error
 
-	model := NewSoftmax(base.BatchGA, 1e-4, 1e3, 5, 500, bdx, bdy)
+	model := NewSoftmax(base.BatchGA, 1e-4, 20, 5, 10, bdx, bdy)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
-	var faliures int
+	var count int
+	var incorrect int
 
-	for i := -200; i < 200; i += 15 {
+	for i := -1.0; i < 1; i += 0.037 {
 		guess, err = model.Predict([]float64{float64(i)})
 
-		hp := maxI(guess)
+		prediction := maxI(guess)
 
-		if i > 15 && hp != 4 {
-			faliures++
-		} else if i > 10 && hp != 3 {
-			faliures++
-		} else if i > 5 && hp != 2 {
-			faliures++
-		} else if i > 0 && hp != 1 {
-			faliures++
-		} else if hp != 0 {
-			faliures++
+		if i > 0.75 {
+			if prediction != 4 {
+				incorrect++
+			}
+		} else if i > 0.12 {
+			if prediction != 3 {
+				incorrect++
+			}
+		} else if i > -0.25 {
+			if prediction != 2 {
+				incorrect++
+			}
+		} else if i > -0.65 {
+			if prediction != 1 {
+				incorrect++
+			}
+		} else {
+			if prediction != 0 {
+				incorrect++
+			}
+		}
+
+		for _, val := range guess {
+			assert.True(t, val < 1.1, "Probability should always be less than 1")
+			assert.True(t, val > -0.1, "Probability should always be greater than 0")
 		}
 
 		assert.Len(t, guess, 5, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
 		assert.Nil(t, err, "Prediction error should be nil")
+
+		count++
 	}
 
-	assert.True(t, faliures > 10, "There should be a strong majority of faliures of the training set")
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) > 0.4, "Accuracy should be worse than 60%")
 }
 
 // same as above but with StochasticGA
 func TestTwoDimensionalSoftmaxShouldFail2(t *testing.T) {
 	var err error
 
-	model := NewSoftmax(base.StochasticGA, 1e-4, 1e3, 5, 300, bdx, bdy)
+	model := NewSoftmax(base.StochasticGA, 1e-5, 2, 5, 10, bdx, bdy)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
-	var faliures int
+	var count int
+	var incorrect int
 
-	for i := -200; i < 200; i += 15 {
+	for i := -1.0; i < 1; i += 0.037 {
 		guess, err = model.Predict([]float64{float64(i)})
-		if i > 0 && guess[0] < 0.5 {
-			faliures++
-		} else if i < 0 && guess[0] > 0.5 {
-			faliures++
+
+		prediction := maxI(guess)
+
+		if i > 0.75 {
+			if prediction != 4 {
+				incorrect++
+			}
+		} else if i > 0.12 {
+			if prediction != 3 {
+				incorrect++
+			}
+		} else if i > -0.25 {
+			if prediction != 2 {
+				incorrect++
+			}
+		} else if i > -0.65 {
+			if prediction != 1 {
+				incorrect++
+			}
+		} else {
+			if prediction != 0 {
+				incorrect++
+			}
+		}
+
+		for _, val := range guess {
+			assert.True(t, val < 1.1, "Probability (%v) should always be less than 1", val)
+			assert.True(t, val > -0.1, "Probability (%v) should always be greater than 0", val)
 		}
 
 		assert.Len(t, guess, 5, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
 		assert.Nil(t, err, "Prediction error should be nil")
+
+		count++
 	}
 
-	assert.True(t, faliures > 10, "There should be a strong majority of faliures of the training set")
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) > 0.4, "Accuracy should be worse than 60%")
 }
 
 // test i+j > 5
@@ -552,7 +645,7 @@ func TestThreeDimensionalSoftmaxShouldPass1(t *testing.T) {
 	}
 
 	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
-	assert.True(t, float64(incorrect)/float64(count) < 0.13, "Accuracy should be greater than 87%")
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
 }
 
 // same as above but with StochasticGA
@@ -598,51 +691,60 @@ func TestThreeDimensionalSoftmaxShouldPass2(t *testing.T) {
 	}
 
 	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
-	assert.True(t, float64(incorrect)/float64(count) < 0.13, "Accuracy should be greater than 87%")
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
 }
 
 // test persisting y=x to file
 func TestPersistSoftmaxShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewSoftmax(base.BatchGA, .0001, 0, 5, 800, bdx, bdy)
+	model := NewSoftmax(base.BatchGA, 5e-5, 0, 3, 500, tdx, tdy)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
+	var count int
+	var incorrect int
 
-	for i := -20; i < 20; i += 3 {
-		guess, err = model.Predict([]float64{float64(i)})
+	for i := -1.0; i < 1.0; i += 0.112 {
+		for j := -1.0; j < 1.0; j += 0.112 {
+			guess, err = model.Predict([]float64{float64(i), float64(j)})
 
-		highestP := maxI(guess)
+			prediction := maxI(guess)
 
-		if i > 15 {
-			assert.Equal(t, 4, highestP, "Best guess should be 4.0")
-		} else if i > 10 {
-			assert.Equal(t, 3, highestP, "Best guess should be 3.0")
-		} else if i > 5 {
-			assert.Equal(t, 2, highestP, "Best guess should be 2.0")
-		} else if i > 0 {
-			assert.Equal(t, 1, highestP, "Best guess should be 1.0")
-		} else {
-			assert.Equal(t, 0, highestP, "Best guess should be 0.0")
+			if -2*i+j/2-0.5 > 0 && -1*i-j < 0 {
+				if prediction != 2 {
+					incorrect++
+				}
+
+			} else if -2*i+j/2-0.5 > 0 && -1*i-j > 0 {
+				if prediction != 1 {
+					incorrect++
+				}
+
+			} else {
+				if prediction != 0 {
+					incorrect++
+				}
+
+			}
+
+			assert.Len(t, guess, 3, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			count++
 		}
-
-		for _, val := range guess {
-			assert.True(t, val < 1.1, "Probability should always be less than 1")
-			assert.True(t, val > -0.1, "Probability should always be greater than 0")
-		}
-
-		assert.Len(t, guess, 5, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
-		assert.Nil(t, err, "Prediction error should be nil")
 	}
+
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
 
 	// not that we know it works, try persisting to file,
 	// then resetting the parameter vector theta, then
 	// restoring it and testing that predictions are correct
 	// again.
 
-	err = model.PersistToFile("/tmp/.goml/Logistic.json")
+	err = model.PersistToFile("/tmp/.goml/Softmax.json")
 	assert.Nil(t, err, "Persistance error should be nil")
 
 	length := len(model.Parameters[0])
@@ -656,41 +758,48 @@ func TestPersistSoftmaxShouldPass1(t *testing.T) {
 	// the result of Theta transpose * X should always
 	// be 0.2 because the probablility is neutral
 	for i := -20; i < 20; i++ {
-		guess, err = model.Predict([]float64{float64(i)})
-		assert.Len(t, guess, 5, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
+		guess, err = model.Predict([]float64{float64(i), 0.2})
+		assert.Len(t, guess, 3, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
 		assert.Nil(t, err, "Prediction error should be nil")
 
 		for j := range guess {
-			assert.Equal(t, 0.2, guess[j], "Guess[%v] should all be equal", j)
+			assert.InDelta(t, 0.333, guess[j], 1e-2, "Guess[%v] should all be equal", j)
 		}
 	}
 
-	err = model.RestoreFromFile("/tmp/.goml/Logistic.json")
+	err = model.RestoreFromFile("/tmp/.goml/Softmax.json")
 	assert.Nil(t, err, "Persistance error should be nil")
 
-	for i := -20; i < 20; i += 3 {
-		guess, err = model.Predict([]float64{float64(i)})
+	for i := -1.0; i < 1.0; i += 0.112 {
+		for j := -1.0; j < 1.0; j += 0.112 {
+			guess, err = model.Predict([]float64{float64(i), float64(j)})
 
-		highestP := maxI(guess)
+			prediction := maxI(guess)
 
-		if i > 15 {
-			assert.Equal(t, 4, highestP, "Best guess should be 4.0")
-		} else if i > 10 {
-			assert.Equal(t, 3, highestP, "Best guess should be 3.0")
-		} else if i > 5 {
-			assert.Equal(t, 2, highestP, "Best guess should be 2.0")
-		} else if i > 0 {
-			assert.Equal(t, 1, highestP, "Best guess should be 1.0")
-		} else {
-			assert.Equal(t, 0, highestP, "Best guess should be 0.0")
+			if -2*i+j/2-0.5 > 0 && -1*i-j < 0 {
+				if prediction != 2 {
+					incorrect++
+				}
+
+			} else if -2*i+j/2-0.5 > 0 && -1*i-j > 0 {
+				if prediction != 1 {
+					incorrect++
+				}
+
+			} else {
+				if prediction != 0 {
+					incorrect++
+				}
+
+			}
+
+			assert.Len(t, guess, 3, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			count++
 		}
-
-		for _, val := range guess {
-			assert.True(t, val < 1.1, "Probability should always be less than 1")
-			assert.True(t, val > -0.1, "Probability should always be greater than 0")
-		}
-
-		assert.Len(t, guess, 5, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
-		assert.Nil(t, err, "Prediction error should be nil")
 	}
+
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
 }
