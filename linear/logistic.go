@@ -220,7 +220,7 @@ func (l *Logistic) Learn() error {
 	} else if l.method == base.StochasticGA {
 		err = base.StochasticGradientAscent(l)
 	} else {
-		err = fmt.Errorf("Chose a training method not implemented for LeastSquares regression")
+		err = fmt.Errorf("Chose a training method not implemented for Logistic regression")
 	}
 
 	if err != nil {

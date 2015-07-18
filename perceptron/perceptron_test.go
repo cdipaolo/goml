@@ -76,7 +76,7 @@ func TestOneDXShouldPass1(t *testing.T) {
 		}
 		iter++
 	}
-	fmt.Printf("Iter: %v", iter)
+	fmt.Printf("Iter: %v\n", iter)
 }
 
 func TestOneDXShouldFail1(t *testing.T) {
@@ -106,8 +106,15 @@ func TestOneDXShouldFail1(t *testing.T) {
 	// close the dataset
 	close(stream)
 
-	err := <-errors
-	assert.NotNil(t, err, "Learning error should not be nil")
+	for {
+		err, more := <-errors
+
+		if more {
+			assert.NotNil(t, err, "Learning error should not be nil")
+		} else {
+			break
+		}
+	}
 }
 
 func TestOneDXShouldFail2(t *testing.T) {
@@ -137,8 +144,15 @@ func TestOneDXShouldFail2(t *testing.T) {
 	// close the dataset
 	close(stream)
 
-	err := <-errors
-	assert.NotNil(t, err, "Learning error should not be nil")
+	for {
+		err, more := <-errors
+
+		if more {
+			assert.NotNil(t, err, "Learning error should not be nil")
+		} else {
+			break
+		}
+	}
 }
 
 func TestOneDXShouldFail3(t *testing.T) {
@@ -149,8 +163,15 @@ func TestOneDXShouldFail3(t *testing.T) {
 
 	go model.OnlineLearn(errors, nil, func(theta []float64) {})
 
-	err := <-errors
-	assert.NotNil(t, err, "Learning error should not be nil")
+	for {
+		err, more := <-errors
+
+		if more {
+			assert.NotNil(t, err, "Learning error should not be nil")
+		} else {
+			break
+		}
+	}
 }
 
 func TestFourDXShouldPass1(t *testing.T) {
@@ -224,45 +245,52 @@ func TestTwoDXNormalizedShouldPass1(t *testing.T) {
 
 	var updates int
 
-	model := NewPerceptron(0.1, 4)
+	model := NewPerceptron(0.1, 2)
 
 	go model.OnlineLearn(errors, stream, func(theta []float64) {
 		updates++
 	}, true)
 
-	var iter int
-	for i := -200.0; abs(i) > 1; i *= -0.82 {
-		for j := -200.0; abs(j) > 1; j *= -0.82 {
+	for i := -200.0; abs(i) > 1; i *= -0.981 {
+		for j := -200.0; abs(j) > 1; j *= -0.981 {
 			x := []float64{i, j}
 			base.NormalizePoint(x)
 
-			if x[0]/2+2*x[1]-4 > 0 {
+			if 5*x[0]+10*x[1]-4 > 0 {
 				stream <- base.Datapoint{
-					X: []float64{i, j},
+					X: x,
 					Y: []float64{1.0},
 				}
 			} else {
 				stream <- base.Datapoint{
-					X: []float64{i, j},
+					X: x,
 					Y: []float64{-1.0},
 				}
 			}
-
-			iter++
 		}
 	}
 
 	// close the dataset
 	close(stream)
 
-	err, more := <-errors
-	assert.Nil(t, err, "Learning error should be nil")
-	assert.False(t, more, "There should be no errors returned")
+	for {
+		err, more := <-errors
+		assert.False(t, more, "There should not be any errors!")
 
-	assert.True(t, updates > 100, "There should be more than 100 updates of theta")
+		if more {
+			assert.Nil(t, err, "Learning error should be nil")
+		} else {
+			break
+		}
+	}
 
-	for i := -200.0; i < 200; i += 100 {
-		for j := -200.0; j < 200; j += 100 {
+	assert.True(t, updates > 50, "There should be more than 50 updates of theta (%v updates recorded)", updates)
+
+	var count int
+	var incorrect int
+
+	for i := -200.0; abs(i) > 1; i *= -0.85 {
+		for j := -200.0; abs(j) > 1; j *= -0.85 {
 			x := []float64{i, j}
 			base.NormalizePoint(x)
 
@@ -270,13 +298,18 @@ func TestTwoDXNormalizedShouldPass1(t *testing.T) {
 			assert.Nil(t, err, "Prediction error should be nil")
 			assert.Len(t, guess, 1, "Guess should have length 1")
 
-			if x[0]/2+2*x[1]-4 > 0 {
-				assert.Equal(t, 1.0, guess[0], "Guess should be 1")
-			} else {
-				assert.Equal(t, -1.0, guess[0], "Guess should be -1")
+			if 5*x[0]+10*x[1]-4 > 0 && guess[0] != 1.0 {
+				incorrect++
+			} else if 5*x[0]+10*x[1]-4 <= 0 && guess[0] != -1.0 {
+				incorrect++
 			}
+
+			count++
 		}
 	}
+
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
 }
 
 func TestPersistPerceptronShouldPass1(t *testing.T) {

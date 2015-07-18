@@ -28,6 +28,7 @@ All the code is well documented, and the source is/should be really readable if 
 - [Generalized Linear Models](linear/)
   * [Ordinary Least Squares](linear/linear.go)
   * [Logistic Regression](linear/logistic.go)
+  * [Softmax Regression](linear/softmax.go)
 - [Perceptron](perceptron/)
   * [Online, Binary Perceptron](perceptron/perceptron.go)
 
