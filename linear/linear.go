@@ -369,11 +369,20 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 		return
 	}
 
+	if errors == nil {
+		errors = make(chan error)
+	}
+
 	fmt.Printf("Training:\n\tModel: Ordinary Least Squares Regression\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)
 
 	norm := len(normalize) != 0 && normalize[0]
+
+	var point base.Datapoint
+	var more bool
+
 	for {
-		point, more := <-dataset
+		point, more = <-dataset
+
 		if more {
 			if len(point.Y) != 1 {
 				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)

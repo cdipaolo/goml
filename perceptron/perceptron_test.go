@@ -228,7 +228,7 @@ func TestTwoDXNormalizedShouldPass1(t *testing.T) {
 
 	go model.OnlineLearn(errors, stream, func(theta []float64) {
 		updates++
-	})
+	}, true)
 
 	var iter int
 	for i := -200.0; abs(i) > 1; i *= -0.82 {

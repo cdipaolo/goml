@@ -311,12 +311,20 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 		return
 	}
 
+	if errors == nil {
+		errors = make(chan error)
+	}
+
 	fmt.Printf("Training:\n\tModel: Perceptron Classifier\n\tOptimization Method: Online Perceptron\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(p.Parameters), p.alpha)
 
 	norm := len(normalize) != 0 && normalize[0]
 
+	var point base.Datapoint
+	var more bool
+
 	for {
-		point, more := <-dataset
+		point, more = <-dataset
+
 		if more {
 			// have a datapoint, predict and update!
 			//

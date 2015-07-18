@@ -517,7 +517,7 @@ func TestThreeDimensionalPlaneNormalizedShouldPass2(t *testing.T) {
 func TestOnlineOneDXShouldPass1(t *testing.T) {
 	// create the channel of data and errors
 	stream := make(chan base.Datapoint, 100)
-	errors := make(chan error)
+	errors := make(chan error, 20)
 
 	model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
 
@@ -571,7 +571,7 @@ func TestOnlineOneDXShouldPass1(t *testing.T) {
 func TestOnlineOneDXShouldFail1(t *testing.T) {
 	// create the channel of data and errors
 	stream := make(chan base.Datapoint, 1000)
-	errors := make(chan error)
+	errors := make(chan error, 20)
 
 	model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
 
@@ -602,7 +602,7 @@ func TestOnlineOneDXShouldFail1(t *testing.T) {
 func TestOnlineOneDXShouldFail2(t *testing.T) {
 	// create the channel of data and errors
 	stream := make(chan base.Datapoint, 1000)
-	errors := make(chan error)
+	errors := make(chan error, 20)
 
 	model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
 
@@ -632,7 +632,7 @@ func TestOnlineOneDXShouldFail2(t *testing.T) {
 
 func TestOnlineOneDXShouldFail3(t *testing.T) {
 	// create the channel of errors
-	errors := make(chan error)
+	errors := make(chan error, 20)
 
 	model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
 
@@ -645,7 +645,7 @@ func TestOnlineOneDXShouldFail3(t *testing.T) {
 func TestOnlineFourDXShouldPass1(t *testing.T) {
 	// create the channel of data and errors
 	stream := make(chan base.Datapoint, 100)
-	errors := make(chan error)
+	errors := make(chan error, 20)
 
 	var updates int
 
@@ -700,6 +700,68 @@ func TestOnlineFourDXShouldPass1(t *testing.T) {
 						assert.InDelta(t, 0.0, guess[0], 0.48, "Guess should be 0")
 					}
 				}
+			}
+		}
+	}
+}
+
+func TestOnlineTwoDXNormalizedShouldPass1(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 10000)
+	errors := make(chan error, 20)
+
+	var updates int
+
+	model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 2)
+
+	go model.OnlineLearn(errors, stream, func(theta []float64) {
+		updates++
+	}, true)
+
+	var iter int
+	for i := -200.0; abs(i) > 1; i *= -0.82 {
+		for j := -200.0; abs(j) > 1; j *= -0.82 {
+			x := []float64{i, j}
+			base.NormalizePoint(x)
+
+			if x[0]/2+2*x[1]-4 > 0 {
+				stream <- base.Datapoint{
+					X: []float64{i, j},
+					Y: []float64{1.0},
+				}
+			} else {
+				stream <- base.Datapoint{
+					X: []float64{i, j},
+					Y: []float64{-1.0},
+				}
+			}
+
+			iter++
+		}
+	}
+
+	// close the dataset
+	close(stream)
+
+	err, more := <-errors
+	assert.Nil(t, err, "Learning error should be nil")
+	assert.False(t, more, "There should be no errors returned")
+
+	assert.True(t, updates > 100, "There should be more than 100 updates of theta")
+
+	for i := -200.0; i < 200; i += 100 {
+		for j := -200.0; j < 200; j += 100 {
+			x := []float64{i, j}
+			base.NormalizePoint(x)
+
+			guess, err := model.Predict([]float64{i, j}, true)
+			assert.Nil(t, err, "Prediction error should be nil")
+			assert.Len(t, guess, 1, "Guess should have length 1")
+
+			if x[0]/2+2*x[1]-4 > 0 {
+				assert.True(t, 1.0 > guess[0] && guess[0] > 0.5, "Guess should be 1 for %v, %v", i, j)
+			} else {
+				assert.True(t, 0.0 < guess[0] && guess[0] < 0.5, "Guess should be 0 for %v, %v", i, j)
 			}
 		}
 	}

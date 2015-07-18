@@ -339,14 +339,23 @@ func (l *Logistic) OnlineLearn(errors chan error, dataset chan base.Datapoint, o
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		fmt.Printf(err.Error())
 		errors <- err
-		fmt.Printf("Errors has %v errors!\n", len(errors))
+		close(errors)
+		return
+	}
+
+	if errors == nil {
+		errors = make(chan error)
 	}
 
 	fmt.Printf("Training:\n\tModel: Logistic (Binary) Classifier\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)
 
 	norm := len(normalize) != 0 && normalize[0]
+	var point base.Datapoint
+	var more bool
+
 	for {
-		point, more := <-dataset
+		point, more = <-dataset
+
 		if more {
 			if len(point.Y) != 1 {
 				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)
