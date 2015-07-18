@@ -57,6 +57,14 @@ type Softmax struct {
 	Parameters [][]float64 `json:"theta"`
 }
 
+func abs(x float64) float64 {
+	if x < 0 {
+		return -1 * x
+	}
+
+	return x
+}
+
 // NewSoftmax takes in a learning rate alpha, a regularization
 // parameter value (0 means no regularization, higher value
 // means higher bias on the model,) the maximum number of
