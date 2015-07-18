@@ -9,7 +9,7 @@ import (
 // further optimizes the parameter vector Theta of the
 // model, which is then used within the Predict function.
 //
-// Gradient Descent follows the following algorithm:
+// Gradient Ascent follows the following algorithm:
 // θ[j] := θ[j] + α·∇J(θ)
 //
 // where J(θ) is the cost function, α is the learning
@@ -46,7 +46,7 @@ func GradientAscent(d Ascendable) error {
 		for j := range Theta {
 			newθ := newTheta[j]
 			if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
-				return fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+				return fmt.Errorf("Sorry! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
 			}
 			Theta[j] = newθ
 		}
@@ -68,7 +68,7 @@ func GradientAscent(d Ascendable) error {
 // func GradientAscent(d Ascendable) error) because of that very
 // difference.
 //
-// Gradient Descent follows the following algorithm:
+// Gradient Ascent follows the following algorithm:
 // θ[j] := θ[j] + α·∇J(θ)
 //
 // where J(θ) is the cost function, α is the learning
@@ -107,7 +107,7 @@ func StochasticGradientAscent(d StochasticAscendable) error {
 			for j := range Theta {
 				newθ := newTheta[j]
 				if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
-					return fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+					return fmt.Errorf("Sorry! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
 				}
 				Theta[j] = newθ
 			}

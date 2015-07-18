@@ -27,6 +27,9 @@ var increasingY []float64
 var threeDLineX [][]float64
 var threeDLineY []float64
 
+var normX [][]float64
+var normY []float64
+
 func init() {
 
 	// create the /tmp/.goml/ dir for persistance testing
@@ -58,12 +61,22 @@ func init() {
 
 	threeDLineX = [][]float64{}
 	threeDLineY = []float64{}
+
+	normX = [][]float64{}
+	normY = []float64{}
 	// the line z = 10 + (x/10) + (y/5)
 	for i := -10; i < 10; i++ {
 		for j := -10; j < 10; j++ {
 			threeDLineX = append(threeDLineX, []float64{float64(i), float64(j)})
 			threeDLineY = append(threeDLineY, 10+float64(i)/10+float64(j)/5)
+
+			normX = append(normX, []float64{float64(i), float64(j)})
 		}
+	}
+
+	base.Normalize(normX)
+	for i := range normX {
+		normY = append(normY, 10+float64(normX[i][0])/10+float64(normX[i][1])/5)
 	}
 }
 
@@ -355,6 +368,192 @@ func TestThreeDimensionalLineShouldPass2(t *testing.T) {
 		}
 	}
 }
+
+//* Test Online Learning through channels *//
+
+func TestOnlineLinearOneDXShouldPass1(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 100)
+	errors := make(chan error)
+
+	model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
+
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+
+	// start passing data to our datastream
+	//
+	// we could have data already in our channel
+	// when we instantiated the Perceptron, though
+	for iter := 0; iter < 500; iter++ {
+		for i := -40.0; i < 40; i += 0.15 {
+			stream <- base.Datapoint{
+				X: []float64{i},
+				Y: []float64{i/10 + 20},
+			}
+		}
+	}
+
+	// close the dataset
+	close(stream)
+
+	err, more := <-errors
+
+	assert.Nil(t, err, "Learning error should be nil")
+	assert.False(t, more, "There should be no errors returned")
+
+	// test a larger dataset now
+	iter := 0
+	for i := -100.0; i < 100; i += 0.347 {
+		guess, err := model.Predict([]float64{i})
+		assert.Nil(t, err, "Prediction error should be nil")
+		assert.Len(t, guess, 1, "Guess should have length 1")
+
+		assert.InDelta(t, i/10+20, guess[0], 1e-2, "Guess should be close to i/10 + 20 for i=%v", i)
+		iter++
+	}
+	fmt.Printf("Iter: %v\n", iter)
+}
+
+func TestOnlineLinearOneDXShouldFail1(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 1000)
+	errors := make(chan error)
+
+	model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
+
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+
+	// give invalid data when it should be -1
+	for i := -500.0; abs(i) > 1; i *= -0.90 {
+		stream <- base.Datapoint{
+			X: []float64{i},
+			Y: []float64{i/10 + 20, 10, 11},
+		}
+	}
+
+	// close the dataset
+	close(stream)
+
+	count := 0
+	for {
+		_, more := <-errors
+		count++
+		if !more {
+			assert.True(t, count > 1, "Learning error should not be nil")
+			break
+		}
+	}
+}
+
+func TestOnlineLinearOneDXShouldFail2(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 1000)
+	errors := make(chan error)
+
+	model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
+
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+
+	// give invalid data when it should be -1
+	for i := -500.0; abs(i) > 1; i *= -0.90 {
+		stream <- base.Datapoint{
+			X: []float64{i, 0, 13},
+			Y: []float64{i/10 + 20},
+		}
+	}
+
+	// close the dataset
+	close(stream)
+
+	count := 0
+	for {
+		_, more := <-errors
+		count++
+		if !more {
+			assert.True(t, count > 1, "Learning error should not be nil")
+			break
+		}
+	}
+}
+
+func TestOnlineLinearOneDXShouldFail3(t *testing.T) {
+	// create the channel of errors
+	errors := make(chan error)
+
+	model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
+
+	go model.OnlineLearn(errors, nil, func(theta []float64) {})
+
+	err := <-errors
+	assert.NotNil(t, err, "Learning error should not be nil")
+}
+
+func TestOnlineLinearFourDXShouldPass1(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 100)
+	errors := make(chan error)
+
+	var updates int
+
+	model := NewLeastSquares(base.StochasticGA, 1e-5, 0, 0, nil, nil, 4)
+
+	go model.OnlineLearn(errors, stream, func(theta []float64) {
+		updates++
+	})
+
+	go func() {
+		for iterations := 0; iterations < 25; iterations++ {
+			for i := -200.0; abs(i) > 1; i *= -0.75 {
+				for j := -200.0; abs(j) > 1; j *= -0.75 {
+					for k := -200.0; abs(k) > 1; k *= -0.75 {
+						for l := -200.0; abs(l) > 1; l *= -0.75 {
+							stream <- base.Datapoint{
+								X: []float64{i, j, k, l},
+								Y: []float64{i/2 + 2*k - 4*j + 2*l + 3},
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// close the dataset
+		close(stream)
+	}()
+
+	count := 0
+	for {
+		err, more := <-errors
+		assert.Nil(t, err, "Learning error should be nil")
+		count++
+		if !more {
+			// account (pun intended) for the ++ on every iteration
+			//
+			// in other words, this should only iterate once, and
+			// more should be false in that case
+			assert.Equal(t, 0, count-1, "There should be no errors returned")
+			break
+		}
+	}
+
+	assert.True(t, updates > 100, "There should be more than 100 updates of theta")
+
+	for i := -200.0; i < 200; i += 100 {
+		for j := -200.0; j < 200; j += 100 {
+			for k := -200.0; k < 200; k += 100 {
+				for l := -200.0; l < 200; l += 100 {
+					guess, err := model.Predict([]float64{i, j, k, l})
+					assert.Nil(t, err, "Prediction error should be nil")
+					assert.Len(t, guess, 1, "Guess should have length 1")
+
+					assert.InDelta(t, i/2+2*k-4*j+2*l+3, guess[0], 1e-2, "Guess should be close to i/2+2*k-4*j+2*l+3")
+				}
+			}
+		}
+	}
+}
+
+//* Test Persistance To File *//
 
 // test persisting y=x to file
 func TestPersistLeastSquaresShouldPass1(t *testing.T) {

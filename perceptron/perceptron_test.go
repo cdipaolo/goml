@@ -32,23 +32,23 @@ func TestOneDXShouldPass1(t *testing.T) {
 	stream := make(chan base.Datapoint, 100)
 	errors := make(chan error)
 
-	model := NewPerceptron(0.1, 1, func (theta []float64) {}, stream)
+	model := NewPerceptron(0.1, 1)
 
-	go model.Learn(errors)
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
 
 	// start passing data to our datastream
 	//
 	// we could have data already in our channel
 	// when we instantiated the Perceptron, though
 	for i := -500.0; abs(i) > 1; i *= -0.997 {
-		if 10 + (i-20)/2 > 0 {
+		if 10+(i-20)/2 > 0 {
 			stream <- base.Datapoint{
-				X: []float64{i-20},
+				X: []float64{i - 20},
 				Y: []float64{1.0},
 			}
 		} else {
 			stream <- base.Datapoint{
-				X: []float64{i-20},
+				X: []float64{i - 20},
 				Y: []float64{0},
 			}
 		}
@@ -57,7 +57,7 @@ func TestOneDXShouldPass1(t *testing.T) {
 	// close the dataset
 	close(stream)
 
-	err, more := <- errors
+	err, more := <-errors
 
 	assert.Nil(t, err, "Learning error should be nil")
 	assert.False(t, more, "There should be no errors returned")
@@ -69,14 +69,14 @@ func TestOneDXShouldPass1(t *testing.T) {
 		assert.Nil(t, err, "Prediction error should be nil")
 		assert.Len(t, guess, 1, "Guess should have length 1")
 
-		if i/2 + 10 > 0 {
+		if i/2+10 > 0 {
 			assert.Equal(t, 1.0, guess[0], "Guess should be 1")
 		} else {
 			assert.Equal(t, -1.0, guess[0], "Guess should be -1")
 		}
 		iter++
 	}
-	fmt.Printf("Iter: %v",iter)
+	fmt.Printf("Iter: %v", iter)
 }
 
 func TestOneDXShouldFail1(t *testing.T) {
@@ -84,20 +84,20 @@ func TestOneDXShouldFail1(t *testing.T) {
 	stream := make(chan base.Datapoint, 1000)
 	errors := make(chan error)
 
-	model := NewPerceptron(0.1, 1, func (theta []float64) {}, stream)
+	model := NewPerceptron(0.1, 1)
 
-	go model.Learn(errors)
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
 
 	// give invalid data when it should be -1
 	for i := -500.0; abs(i) > 1; i *= -0.99 {
-		if (i-20)/2 + 10 > 0 {
+		if (i-20)/2+10 > 0 {
 			stream <- base.Datapoint{
-				X: []float64{i-20},
+				X: []float64{i - 20},
 				Y: []float64{1.0},
 			}
 		} else {
 			stream <- base.Datapoint{
-				X: []float64{i-20,0.0,0.0,0.0},
+				X: []float64{i - 20, 0.0, 0.0, 0.0},
 				Y: []float64{-1.0},
 			}
 		}
@@ -106,7 +106,7 @@ func TestOneDXShouldFail1(t *testing.T) {
 	// close the dataset
 	close(stream)
 
-	err := <- errors
+	err := <-errors
 	assert.NotNil(t, err, "Learning error should not be nil")
 }
 
@@ -115,15 +115,13 @@ func TestOneDXShouldFail2(t *testing.T) {
 	stream := make(chan base.Datapoint, 1000)
 	errors := make(chan error)
 
-	model := NewPerceptron(0.1, 1, func (theta []float64) {
-		fmt.Printf("Updates Theta: %v\n", theta)
-	}, stream)
+	model := NewPerceptron(0.1, 1)
 
-	go model.Learn(errors)
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
 
 	// give invalid data when it should be -1
 	for i := -500.0; abs(i) > 1; i *= -0.99 {
-		if i/10 + 20 > 0 {
+		if i/10+20 > 0 {
 			stream <- base.Datapoint{
 				X: []float64{i},
 				Y: []float64{1.0},
@@ -131,7 +129,7 @@ func TestOneDXShouldFail2(t *testing.T) {
 		} else {
 			stream <- base.Datapoint{
 				X: []float64{i},
-				Y: []float64{-1.0,10,10,10},
+				Y: []float64{-1.0, 10, 10, 10},
 			}
 		}
 	}
@@ -139,7 +137,19 @@ func TestOneDXShouldFail2(t *testing.T) {
 	// close the dataset
 	close(stream)
 
-	err := <- errors
+	err := <-errors
+	assert.NotNil(t, err, "Learning error should not be nil")
+}
+
+func TestOneDXShouldFail3(t *testing.T) {
+	// create the channel of errors
+	errors := make(chan error)
+
+	model := NewPerceptron(0.1, 1)
+
+	go model.OnlineLearn(errors, nil, func(theta []float64) {})
+
+	err := <-errors
 	assert.NotNil(t, err, "Learning error should not be nil")
 }
 
@@ -150,25 +160,25 @@ func TestFourDXShouldPass1(t *testing.T) {
 
 	var updates int
 
-	model := NewPerceptron(0.1, 4, func (theta []float64) {
-		updates++
-	}, stream)
+	model := NewPerceptron(0.1, 4)
 
-	go model.Learn(errors)
+	go model.OnlineLearn(errors, stream, func(theta []float64) {
+		updates++
+	})
 
 	var iter int
 	for i := -200.0; abs(i) > 1; i *= -0.82 {
 		for j := -200.0; abs(j) > 1; j *= -0.82 {
 			for k := -200.0; abs(k) > 1; k *= -0.82 {
 				for l := -200.0; abs(l) > 1; l *= -0.82 {
-					if i/2 + 2*k - 4*j+ 2*l + 3 > 0 {
+					if i/2+2*k-4*j+2*l+3 > 0 {
 						stream <- base.Datapoint{
-							X: []float64{i,j,k,l},
+							X: []float64{i, j, k, l},
 							Y: []float64{1.0},
 						}
 					} else {
 						stream <- base.Datapoint{
-							X: []float64{i,j,k,l},
+							X: []float64{i, j, k, l},
 							Y: []float64{-1.0},
 						}
 					}
@@ -182,7 +192,7 @@ func TestFourDXShouldPass1(t *testing.T) {
 	// close the dataset
 	close(stream)
 
-	err, more := <- errors
+	err, more := <-errors
 	assert.Nil(t, err, "Learning error should be nil")
 	assert.False(t, more, "There should be no errors returned")
 
@@ -192,11 +202,11 @@ func TestFourDXShouldPass1(t *testing.T) {
 		for j := -200.0; j < 200; j += 100 {
 			for k := -200.0; k < 200; k += 100 {
 				for l := -200.0; l < 200; l += 100 {
-					guess, err := model.Predict([]float64{i,j,k,l})
+					guess, err := model.Predict([]float64{i, j, k, l})
 					assert.Nil(t, err, "Prediction error should be nil")
 					assert.Len(t, guess, 1, "Guess should have length 1")
 
-					if i/2 + 2*k - 4*j + 2*l + 3 > 0 {
+					if i/2+2*k-4*j+2*l+3 > 0 {
 						assert.Equal(t, 1.0, guess[0], "Guess should be 1")
 					} else {
 						assert.Equal(t, -1.0, guess[0], "Guess should be -1")
@@ -207,28 +217,90 @@ func TestFourDXShouldPass1(t *testing.T) {
 	}
 }
 
+func TestTwoDXNormalizedShouldPass1(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 100)
+	errors := make(chan error)
+
+	var updates int
+
+	model := NewPerceptron(0.1, 4)
+
+	go model.OnlineLearn(errors, stream, func(theta []float64) {
+		updates++
+	}, true)
+
+	var iter int
+	for i := -200.0; abs(i) > 1; i *= -0.82 {
+		for j := -200.0; abs(j) > 1; j *= -0.82 {
+			x := []float64{i, j}
+			base.NormalizePoint(x)
+
+			if x[0]/2+2*x[1]-4 > 0 {
+				stream <- base.Datapoint{
+					X: []float64{i, j},
+					Y: []float64{1.0},
+				}
+			} else {
+				stream <- base.Datapoint{
+					X: []float64{i, j},
+					Y: []float64{-1.0},
+				}
+			}
+
+			iter++
+		}
+	}
+
+	// close the dataset
+	close(stream)
+
+	err, more := <-errors
+	assert.Nil(t, err, "Learning error should be nil")
+	assert.False(t, more, "There should be no errors returned")
+
+	assert.True(t, updates > 100, "There should be more than 100 updates of theta")
+
+	for i := -200.0; i < 200; i += 100 {
+		for j := -200.0; j < 200; j += 100 {
+			x := []float64{i, j}
+			base.NormalizePoint(x)
+
+			guess, err := model.Predict([]float64{i, j}, true)
+			assert.Nil(t, err, "Prediction error should be nil")
+			assert.Len(t, guess, 1, "Guess should have length 1")
+
+			if x[0]/2+2*x[1]-4 > 0 {
+				assert.Equal(t, 1.0, guess[0], "Guess should be 1")
+			} else {
+				assert.Equal(t, -1.0, guess[0], "Guess should be -1")
+			}
+		}
+	}
+}
+
 func TestPersistPerceptronShouldPass1(t *testing.T) {
 	// create the channel of data and errors
 	stream := make(chan base.Datapoint, 100)
 	errors := make(chan error)
 
-	model := NewPerceptron(0.1, 1, func (theta []float64) {}, stream)
+	model := NewPerceptron(0.1, 1)
 
-	go model.Learn(errors)
+	go model.OnlineLearn(errors, stream, func(theta []float64) {})
 
 	// start passing data to our datastream
 	//
 	// we could have data already in our channel
 	// when we instantiated the Perceptron, though
 	for i := -500.0; abs(i) > 1; i *= -0.997 {
-		if 10 + (i-20)/2 > 0 {
+		if 10+(i-20)/2 > 0 {
 			stream <- base.Datapoint{
-				X: []float64{i-20},
+				X: []float64{i - 20},
 				Y: []float64{1.0},
 			}
 		} else {
 			stream <- base.Datapoint{
-				X: []float64{i-20},
+				X: []float64{i - 20},
 				Y: []float64{0},
 			}
 		}
@@ -237,7 +309,7 @@ func TestPersistPerceptronShouldPass1(t *testing.T) {
 	// close the dataset
 	close(stream)
 
-	err, more := <- errors
+	err, more := <-errors
 	assert.Nil(t, err, "Learning error should be nil")
 	assert.False(t, more, "There should be no errors returned")
 
@@ -247,7 +319,7 @@ func TestPersistPerceptronShouldPass1(t *testing.T) {
 		assert.Nil(t, err, "Prediction error should be nil")
 		assert.Len(t, guess, 1, "Guess should have length 1")
 
-		if i/2 + 10 > 0 {
+		if i/2+10 > 0 {
 			assert.Equal(t, 1.0, guess[0], "Guess should be 1")
 		} else {
 			assert.Equal(t, -1.0, guess[0], "Guess should be -1")
@@ -282,7 +354,7 @@ func TestPersistPerceptronShouldPass1(t *testing.T) {
 		assert.Nil(t, err, "Prediction error should be nil")
 		assert.Len(t, guess, 1, "Guess should have length 1")
 
-		if i/2 + 10 > 0 {
+		if i/2+10 > 0 {
 			assert.Equal(t, 1.0, guess[0], "Guess should be 1")
 		} else {
 			assert.Equal(t, -1.0, guess[0], "Guess should be -1")

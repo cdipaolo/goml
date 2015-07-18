@@ -57,12 +57,47 @@ type Logistic struct {
 // iterations the data can go through in gradient descent,
 // as well as a training set and expected results for that
 // training set.
-func NewLogistic(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64) *Logistic {
+//
+// if you're passing in no training set directly because you want
+// to learn using the online method then just declare the number of
+// features (it's an integer) as an extra arg after the rest
+// of the arguments
+//
+// DATA FORMAT:
+// The Logistic model expects expected results to be either a 0
+// or a 1. Predict returns the probability that the item inputted
+// is a 1. Obviously this means that the probability that the inputted
+// x is a 0 is 1-TheGuess
+//
+// Example Binary Logistic Regression (Batch GA):
+//
+//     // optimization method: Batch Gradient Ascent
+//     // Learning rate: 1e-4
+//     // Regulatization term: 6
+//     // Max Iterations: 800
+//     // Dataset to learn fron: testX
+//     // Expected results dataset: testY
+//     model := NewLogistic(base.BatchGA, 1e-4, 6, 800, testX, testY)
+//
+//     err := model.Learn()
+//     if err != nil {
+//         panic("SOME ERROR!! RUN!")
+//     }
+//
+//     // now I want to predict off of this
+//     // Ordinary Least Squares model!
+//     guess, err = model.Predict([]float64{10000,6})
+//     if err != nil {
+//         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+//     }
+func NewLogistic(method base.OptimizationMethod, alpha, regularization float64, maxIterations int, trainingSet [][]float64, expectedResults []float64, features ...int) *Logistic {
 	var params []float64
-	if trainingSet == nil || len(trainingSet) == 0 {
+	if len(features) != 0 {
+		params = make([]float64, features[0]+1)
+	} else if trainingSet == nil || len(trainingSet) == 0 {
 		params = []float64{}
 	} else {
-		params = make([]float64, len((trainingSet)[0])+1)
+		params = make([]float64, len(trainingSet[0])+1)
 	}
 
 	return &Logistic{
@@ -129,9 +164,18 @@ func (l *Logistic) MaxIterations() int {
 // Predict takes in a variable x (an array of floats,) and
 // finds the value of the hypothesis function given the
 // current parameter vector θ
-func (l *Logistic) Predict(x []float64) ([]float64, error) {
+//
+// if normalize is given as true, then the input will
+// first be normalized to unit length. Only use this if
+// you trained off of normalized inputs and are feeding
+// an un-normalized input
+func (l *Logistic) Predict(x []float64, normalize ...bool) ([]float64, error) {
 	if len(x)+1 != len(l.Parameters) {
 		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(l.Parameters))
+	}
+
+	if len(normalize) != 0 && normalize[0] {
+		base.NormalizePoint(x)
 	}
 
 	// include constant term in sum
@@ -186,6 +230,204 @@ func (l *Logistic) Learn() error {
 
 	fmt.Printf("Training Completed.\n%v\n\n", l)
 	return nil
+}
+
+// OnlineLearn runs similar to using a fixed dataset with
+// Stochastic Gradient Descent, but it handles data by
+// passing it as a channal, and returns errors through
+// a channel, which lets it run responsive to inputted data
+// from outside the model itself (like using data from the
+// stock market at timed intervals or using realtime data
+// about the weather.)
+//
+// The onUpdate callback is called whenever the parameter
+// vector theta is changed, so you are able to persist the
+// model with the most up to date vector at all times (you
+// could persist to a database within the callback, for
+// example.) Don't worry about it taking too long and blocking,
+// because the callback is spawned into another goroutine.
+//
+// NOTE that this function is suggested to run in it's own
+// goroutine, or at least is designed as such.
+//
+// NOTE part 2: You can pass in an empty dataset, so long
+// as it's not nil, and start pushing after.
+//
+// NOTE part 3: each example is only looked at as it goes
+// through the channel, so if you want to have each example
+// looked at more than once you must manually pass the data
+// yourself.
+//
+// NOTE part 4: the optional parameter 'normalize' will
+// , if true, normalize all data streamed through the
+// channel to unit length. This will affect the outcome
+// of the hypothesis, though it could be favorable if
+// your data comes in drastically different scales.
+//
+// Example Online Logistic Regression:
+//
+//     // create the channel of data and errors
+//     stream := make(chan base.Datapoint, 100)
+//     errors := make(chan error)
+//
+//     // notice how we are adding another integer
+//     // to the end of the NewLogistic call. This
+//     // tells the model to use that number of features
+//     // (4) in leu of finding that from the dataset
+//     // like you would with batch/stochastic GD
+//     //
+//     // Also – the 'base.StochasticGA' doesn't affect
+//     // anything. You could put batch.
+//     model := NewLogistic(base.StochasticGA, .0001, 0, 0, nil, nil, 4)
+//
+//     go model.OnlineLearn(errors, stream, func(theta []float64) {
+//         // do something with the new theta (persist
+//         // to database?) in here.
+//     })
+//
+//     go func() {
+//         for iterations := 0; iterations < 20; iterations++ {
+//             for i := -200.0; abs(i) > 1; i *= -0.75 {
+//                 for j := -200.0; abs(j) > 1; j *= -0.75 {
+//                     for k := -200.0; abs(k) > 1; k *= -0.75 {
+//                         for l := -200.0; abs(l) > 1; l *= -0.75 {
+//                             if i/2+2*k-4*j+2*l+3 > 0 {
+//                                 stream <- base.Datapoint{
+//                                     X: []float64{i, j, k, l},
+//                                     Y: []float64{1.0},
+//                                 }
+//                             } else {
+//                                 stream <- base.Datapoint{
+//                                     X: []float64{i, j, k, l},
+//                                     Y: []float64{0.0},
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         // close the dataset to tell the model
+//         // to stop learning when it finishes reading
+//         // what's left in the channel
+//         close(stream)
+//     }()
+//
+//     // this will block until the error
+//     // channel is closed in the learning
+//     // function (it will, don't worry!)
+//     for {
+//         err, more := <-errors
+//         if err != nil {
+//             panic("THERE WAS AN ERROR!!! RUN!!!!")
+//         }
+//         if !more {
+//             break
+//         }
+//     }
+//
+//     // Below here all the learning is completed
+//
+//     // predict like usual
+//     guess, err = model.Predict([]float64{42,6,10,-32})
+//     if err != nil {
+//         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+//     }
+func (l *Logistic) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64), normalize ...bool) {
+	if dataset == nil {
+		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
+		fmt.Printf(err.Error())
+		errors <- err
+		close(errors)
+		return
+	}
+
+	if errors == nil {
+		errors = make(chan error)
+	}
+
+	fmt.Printf("Training:\n\tModel: Logistic (Binary) Classifier\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)
+
+	norm := len(normalize) != 0 && normalize[0]
+	var point base.Datapoint
+	var more bool
+
+	for {
+		point, more = <-dataset
+
+		if more {
+			if len(point.Y) != 1 {
+				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)
+			}
+
+			if norm {
+				base.NormalizePoint(point.X)
+			}
+
+			newTheta := make([]float64, len(l.Parameters))
+			for j := range l.Parameters {
+
+				// find the gradient using the point
+				// from the channel (different than
+				// calling from the dataset so we need
+				// to have a new function instead of calling
+				// Dij(i, j))
+				dj, err := func(point base.Datapoint, j int) (float64, error) {
+					prediction, err := l.Predict(point.X)
+					if err != nil {
+						return 0, err
+					}
+
+					// account for constant term
+					// x is x[i][j] via Andrew Ng's terminology
+					var x float64
+					if j == 0 {
+						x = 1
+					} else {
+						x = point.X[j-1]
+					}
+
+					var gradient float64
+					gradient = (point.Y[0] - prediction[0]) * x
+
+					// add in the regularization term
+					// λ*θ[j]
+					//
+					// notice that we don't count the
+					// constant term
+					if j != 0 {
+						gradient += l.regularization * l.Parameters[j]
+					}
+
+					return gradient, nil
+				}(point, j)
+				if err != nil {
+					errors <- err
+					continue
+				}
+
+				newTheta[j] = l.Parameters[j] + l.alpha*dj
+			}
+
+			// now simultaneously update Theta
+			for j := range l.Parameters {
+				newθ := newTheta[j]
+				if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
+					errors <- fmt.Errorf("Sorry! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+					continue
+				}
+				l.Parameters[j] = newθ
+			}
+
+			go onUpdate(l.Parameters)
+
+		} else {
+			fmt.Printf("Training Completed.\n%v\n\n", l)
+			close(errors)
+			return
+		}
+	}
 }
 
 // String implements the fmt interface for clean printing. Here

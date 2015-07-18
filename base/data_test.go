@@ -91,3 +91,72 @@ func TestSaveDataToCSVShouldFail5(t *testing.T) {
 	err := SaveDataToCSV("/tmp/.goml/CSVFail5.csv", [][]float64{[]float64{1.0}, []float64{1.0}, []float64{1.0}}, []float64{1.0}, false)
 	assert.NotNil(t, err, "Error saving data should not be nil")
 }
+
+func TestLoadDataFromCSVToStreamShouldPass1(t *testing.T) {
+	err := SaveDataToCSV("/tmp/.goml/CSV_stream.csv", x, y, true)
+	assert.Nil(t, err, "Error saving data should be nil")
+
+	data := make(chan Datapoint, 100)
+	errors := make(chan error)
+
+	go LoadDataFromCSVToStream("/tmp/.goml/CSV_stream.csv", data, errors)
+
+	point := Datapoint{}
+	var more bool
+
+	for i := -100; i < 100; i++ {
+		point, more = <-data
+
+		if more {
+			assert.Equal(t, float64(i), point.Y[0], "Y should equal i-100")
+
+			for j := 0; j < 10; j++ {
+				assert.Equal(t, float64(j), point.X[j], "X[j] should equal j")
+			}
+		} else {
+			assert.Equal(t, 99, i, "Stream should pass 200 examples")
+			break
+		}
+	}
+
+	count := 0
+	for {
+		_, more := <-errors
+		count++
+		if !more {
+			assert.Equal(t, 1, count, "Learning error should be nil")
+			break
+		}
+	}
+}
+
+func TestLoadDataFromCSVToStreamShouldFail1(t *testing.T) {
+	err := SaveDataToCSV("/tmp/.goml/CSV_stream_fail.csv", x, y, true)
+	assert.Nil(t, err, "Error saving data should be nil")
+
+	data := make(chan Datapoint, 50)
+	errors := make(chan error)
+
+	go LoadDataFromCSVToStream("/tmp/.goml/PATH_THAT_DOES_NOT_EXIT_AT_ALL_OR_EVER_HOPEFULLYARKNGALRKGNALFJGNA.csv", data, errors)
+
+	count := 0
+	for {
+		_, more := <-errors
+		count++
+		if !more {
+			assert.NotEqual(t, 1, count, "Learning error should not be nil")
+			break
+		}
+	}
+
+	i := 0
+	for {
+		_, more := <-data
+
+		if !more {
+			assert.Equal(t, 0, i, "Stream should pass 0 examples")
+			break
+		}
+		i++
+	}
+}
