@@ -292,10 +292,8 @@ func (l *LeastSquares) Learn() error {
 // yourself.
 //
 // NOTE part 4: the optional parameter 'normalize' will
-// , if true, normalize all data streamed through the
-// channel to unit length. This will affect the outcome
-// of the hypothesis, though it could be favorable if
-// your data comes in drastically different scales.
+// not do anything with a linear model.It is included so
+// the model fits the OnlineModel interface.
 //
 // Example Online Linear Least Squares:
 //
@@ -375,8 +373,6 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 
 	fmt.Printf("Training:\n\tModel: Ordinary Least Squares Regression\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)
 
-	norm := len(normalize) != 0 && normalize[0]
-
 	var point base.Datapoint
 	var more bool
 
@@ -386,10 +382,6 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 		if more {
 			if len(point.Y) != 1 {
 				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)
-			}
-
-			if norm {
-				base.NormalizePoint(point.X)
 			}
 
 			newTheta := make([]float64, len(l.Parameters))
@@ -441,7 +433,7 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 			for j := range l.Parameters {
 				newθ := newTheta[j]
 				if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
-					errors <- fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+					errors <- fmt.Errorf("Sorry! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
 					continue
 				}
 				l.Parameters[j] = newθ

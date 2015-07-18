@@ -414,7 +414,7 @@ func (l *Logistic) OnlineLearn(errors chan error, dataset chan base.Datapoint, o
 			for j := range l.Parameters {
 				newθ := newTheta[j]
 				if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
-					errors <- fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+					errors <- fmt.Errorf("Sorry! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
 					continue
 				}
 				l.Parameters[j] = newθ

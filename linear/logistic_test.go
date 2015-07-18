@@ -85,10 +85,8 @@ func init() {
 
 	for i := range nX {
 		if nX[i][0]+nX[i][1] > 5 {
-			threeDY = append(threeDY, 1.0)
 			nY = append(nY, 1.0)
 		} else {
-			threeDY = append(threeDY, 0.0)
 			nY = append(nY, 0.0)
 		}
 	}
@@ -468,10 +466,10 @@ func TestThreeDimensionalPlaneNormalizedShouldPass1(t *testing.T) {
 			guess, err = model.Predict(x, true)
 
 			if x[0]+x[1] > 5 {
-				assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+				assert.True(t, guess[0] > 0.5, "Guess (%v) should be more likely to be 1", guess[0])
 				assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
 			} else {
-				assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
+				assert.True(t, guess[0] < 0.5, "Guess (%v) should be more likely to be 0", guess[0])
 				assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
 			}
 
