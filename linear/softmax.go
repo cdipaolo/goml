@@ -142,9 +142,13 @@ func (s *Softmax) MaxIterations() int {
 // Predict takes in a variable x (an array of floats,) and
 // finds the value of the hypothesis function given the
 // current parameter vector θ
-func (s *Softmax) Predict(x []float64) ([]float64, error) {
+func (s *Softmax) Predict(x []float64, normalize ...bool) ([]float64, error) {
 	if len(s.Parameters) != 0 && len(x)+1 != len(s.Parameters[0]) {
 		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(s.Parameters))
+	}
+
+	if len(normalize) != 0 && normalize[0] {
+		base.NormalizePoint(x)
 	}
 
 	result := make([]float64, s.k)
@@ -340,13 +344,10 @@ func (s *Softmax) Dj(k int) ([]float64, error) {
 
 			denom += math.Exp(inside)
 
-			if math.IsInf(numerator, 0) || math.IsInf(denom, 0) {
-				fmt.Printf("inside: %v\n\ttheta: %v\n\tx: %v\n", inside, s.Parameters[k], x)
-			}
 		}
 
 		for a := range sum {
-			sum[a] -= x[a] * (ident - numerator/denom)
+			sum[a] += x[a] * (ident - numerator/denom)
 		}
 	}
 
