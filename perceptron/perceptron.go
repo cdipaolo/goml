@@ -364,7 +364,7 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 				// call the OnUpdate callback with the new theta
 				// appended to a blank slice so the vector is
 				// passed by value and not by reference
-				go onUpdate(append([]float64{}, p.Parameters...))
+				go onUpdate([][]float64{p.Parameters})
 			}
 
 		} else {
