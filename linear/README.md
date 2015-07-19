@@ -14,7 +14,7 @@ This part of the `goml` package implements varied generalized linear models usin
 ### example ordinary least squares
 
 this is mostly from from the `linear_test.go` tests. You can find more examples from the testing files. The line given is `z = 10 + (x/10) + (y/5)`
-```
+```go
 // initialize data
 threeDLineX = [][]float64{}
 threeDLineY = []float64{}
