@@ -329,6 +329,82 @@ func (s *Softmax) Learn() error {
 // of the hypothesis, though it could be favorable if
 // your data comes in drastically different scales.
 //
+// Example Online Logistic Regression:
+//
+//     // create the channel of data and errors
+//     stream := make(chan base.Datapoint, 100)
+//     errors := make(chan error)
+//
+//     // notice how we are adding another integer
+//     // to the end of the NewSoftmax call. This
+//     // tells the model to use that number of features
+//     // (2) in leu of finding that from the dataset
+//     // like you would with batch/stochastic GD
+//     //
+//     // Also – the 'base.StochasticGA' doesn't affect
+//     // anything. You could put batch or any other model.
+//     model := NewSoftmax(base.StochasticGA, 5e-5, 0, 3, 0, nil, nil, 2)
+//
+//     go model.OnlineLearn(errors, stream, func(theta [][]float64) {
+//         // do something with the new theta (persist
+//         // to database?) in here.
+//     })
+//
+//     go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
+//
+//     // start passing data to our datastream
+//     //
+//     // we could have data already in our channel
+//     // when we instantiated the Perceptron, though
+//	   go func() {
+//         for iter := 0; iter < 3; iter++ {
+//             for i := -2.0; i < 2.0; i += 0.15 {
+//                 for j := -2.0; j < 2.0; j += 0.15 {
+//
+//                     if -2*i+j/2-0.5 > 0 && -1*i-j < 0 {
+//                              stream <- base.Datapoint{
+//                                 X: []float64{float64(i), float64(j)},
+//                                 Y: []float64{2.0},
+//                             }
+//                     } else if -2*i+j/2-0.5 > 0 && -1*i-j > 0 {
+//                             stream <- base.Datapoint{
+//                                 X: []float64{float64(i), float64(j)},
+//                                 Y: []float64{1.0},
+//                             }
+//                     } else {
+//                         stream <- base.Datapoint{
+//                                 X: []float64{float64(i), float64(j)},
+//                                 Y: []float64{0.0},
+//                             }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         // close the dataset
+//         close(stream)
+//     }()
+//
+//     // this will block until the error
+//     // channel is closed in the learning
+//     // function (it will, don't worry!)
+//     for {
+//         err, more := <-errors
+//         if err != nil {
+//             panic("THERE WAS AN ERROR!!! RUN!!!!")
+//         }
+//         if !more {
+//             break
+//         }
+//     }
+//
+//     // Below here all the learning is completed
+//
+//     // predict like usual
+//     guess, err = model.Predict([]float64{42,6,10,-32})
+//     if err != nil {
+//         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+//     }
 func (s *Softmax) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
