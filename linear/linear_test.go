@@ -370,7 +370,7 @@ func TestOnlineLinearOneDXShouldPass1(t *testing.T) {
 
 	model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
 
 	// start passing data to our datastream
 	//
@@ -413,7 +413,7 @@ func TestOnlineLinearOneDXShouldFail1(t *testing.T) {
 
 	model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
 
 	// give invalid data when it should be -1
 	for i := -500.0; abs(i) > 1; i *= -0.90 {
@@ -444,7 +444,7 @@ func TestOnlineLinearOneDXShouldFail2(t *testing.T) {
 
 	model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
 
 	// give invalid data when it should be -1
 	for i := -500.0; abs(i) > 1; i *= -0.90 {
@@ -474,7 +474,7 @@ func TestOnlineLinearOneDXShouldFail3(t *testing.T) {
 
 	model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 1)
 
-	go model.OnlineLearn(errors, nil, func(theta []float64) {})
+	go model.OnlineLearn(errors, nil, func(theta [][]float64) {})
 
 	err := <-errors
 	assert.NotNil(t, err, "Learning error should not be nil")
@@ -489,7 +489,7 @@ func TestOnlineLinearFourDXShouldPass1(t *testing.T) {
 
 	model := NewLeastSquares(base.StochasticGA, 1e-5, 0, 0, nil, nil, 4)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {
 		updates++
 	})
 

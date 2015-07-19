@@ -302,7 +302,7 @@ func (p *Perceptron) Predict(x []float64, normalize ...bool) ([]float64, error) 
 //      if err != nil {
 //           panic("EGATZ!! I FOUND AN ERROR! BETTER CHECK YOUR INPUT DIMENSIONS!")
 //      }
-func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64), normalize ...bool) {
+func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		fmt.Printf(err.Error())

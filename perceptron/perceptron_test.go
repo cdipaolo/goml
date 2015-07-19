@@ -34,7 +34,7 @@ func TestOneDXShouldPass1(t *testing.T) {
 
 	model := NewPerceptron(0.1, 1)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
 
 	// start passing data to our datastream
 	//
@@ -86,7 +86,7 @@ func TestOneDXShouldFail1(t *testing.T) {
 
 	model := NewPerceptron(0.1, 1)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
 
 	// give invalid data when it should be -1
 	for i := -500.0; abs(i) > 1; i *= -0.99 {
@@ -124,7 +124,7 @@ func TestOneDXShouldFail2(t *testing.T) {
 
 	model := NewPerceptron(0.1, 1)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
 
 	// give invalid data when it should be -1
 	for i := -500.0; abs(i) > 1; i *= -0.99 {
@@ -161,7 +161,7 @@ func TestOneDXShouldFail3(t *testing.T) {
 
 	model := NewPerceptron(0.1, 1)
 
-	go model.OnlineLearn(errors, nil, func(theta []float64) {})
+	go model.OnlineLearn(errors, nil, func(theta [][]float64) {})
 
 	for {
 		err, more := <-errors
@@ -183,7 +183,7 @@ func TestFourDXShouldPass1(t *testing.T) {
 
 	model := NewPerceptron(0.1, 4)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {
 		updates++
 	})
 
@@ -247,7 +247,7 @@ func TestTwoDXNormalizedShouldPass1(t *testing.T) {
 
 	model := NewPerceptron(0.1, 2)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {
 		updates++
 	}, true)
 
@@ -319,7 +319,7 @@ func TestPersistPerceptronShouldPass1(t *testing.T) {
 
 	model := NewPerceptron(0.1, 1)
 
-	go model.OnlineLearn(errors, stream, func(theta []float64) {})
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
 
 	// start passing data to our datastream
 	//

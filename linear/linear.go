@@ -311,7 +311,7 @@ func (l *LeastSquares) Learn() error {
 //     // anything. You could put batch.
 //     model := NewLeastSquares(base.StochasticGA, .0001, 0, 0, nil, nil, 4)
 //
-//     go model.OnlineLearn(errors, stream, func(theta []float64) {
+//     go model.OnlineLearn(errors, stream, func(theta [][]float64) {
 //         // do something with the new theta (persist
 //         // to database?) in here.
 //     })
@@ -358,7 +358,7 @@ func (l *LeastSquares) Learn() error {
 //     if err != nil {
 //         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
 //     }
-func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([]float64), normalize ...bool) {
+func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		fmt.Printf(err.Error())
@@ -439,7 +439,7 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 				l.Parameters[j] = newθ
 			}
 
-			go onUpdate(l.Parameters)
+			go onUpdate([][]float64{l.Parameters})
 
 		} else {
 			fmt.Printf("Training Completed.\n%v\n\n", l)

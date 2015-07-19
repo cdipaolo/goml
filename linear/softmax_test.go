@@ -694,6 +694,192 @@ func TestThreeDimensionalSoftmaxShouldPass2(t *testing.T) {
 	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
 }
 
+//* Test Online Learning through channels *//
+
+func TestThreeDimensionalSoftmaxOnlineShouldPass2(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 100)
+	errors := make(chan error, 20)
+
+	model := NewSoftmax(base.StochasticGA, 5e-5, 0, 3, 0, nil, nil, 2)
+
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
+
+	// start passing data to our datastream
+	//
+	// we could have data already in our channel
+	// when we instantiated the Perceptron, though
+	go func() {
+		for iter := 0; iter < 3; iter++ {
+			for i := -2.0; i < 2.0; i += 0.15 {
+				for j := -2.0; j < 2.0; j += 0.15 {
+
+					if -2*i+j/2-0.5 > 0 && -1*i-j < 0 {
+						stream <- base.Datapoint{
+							X: []float64{float64(i), float64(j)},
+							Y: []float64{2.0},
+						}
+					} else if -2*i+j/2-0.5 > 0 && -1*i-j > 0 {
+						stream <- base.Datapoint{
+							X: []float64{float64(i), float64(j)},
+							Y: []float64{1.0},
+						}
+					} else {
+						stream <- base.Datapoint{
+							X: []float64{float64(i), float64(j)},
+							Y: []float64{0.0},
+						}
+					}
+				}
+			}
+		}
+
+		// close the dataset
+		close(stream)
+	}()
+
+	for {
+		err, more := <-errors
+
+		assert.Nil(t, err, "There should not be any errors!")
+		assert.False(t, more, "There should not be any errors!")
+		if !more {
+			break
+		}
+	}
+
+	var guess []float64
+	var count int
+	var incorrect int
+	var err error
+
+	for i := -1.0; i < 1.0; i += 0.113 {
+		for j := -1.0; j < 1.0; j += 0.113 {
+			guess, err = model.Predict([]float64{float64(i), float64(j)})
+
+			prediction := maxI(guess)
+
+			if -2*i+j/2-0.5 > 0 && -1*i-j < 0 {
+				if prediction != 2 {
+					incorrect++
+				}
+
+			} else if -2*i+j/2-0.5 > 0 && -1*i-j > 0 {
+				if prediction != 1 {
+					incorrect++
+				}
+
+			} else {
+				if prediction != 0 {
+					incorrect++
+				}
+
+			}
+
+			assert.Len(t, guess, 3, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			count++
+		}
+	}
+
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
+}
+
+func TestThreeDimensionalSoftmaxOnlineNormalizedShouldPass2(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 100)
+	errors := make(chan error, 20)
+
+	model := NewSoftmax(base.StochasticGA, 5e-5, 0, 3, 0, nil, nil, 2)
+
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {}, true)
+
+	// start passing data to our datastream
+	//
+	// we could have data already in our channel
+	// when we instantiated the Perceptron, though
+	go func() {
+		for iter := 0; iter < 3; iter++ {
+			for i := -1.25; i < 1.25; i += 0.15 {
+				for j := -1.25; j < 1.25; j += 0.15 {
+
+					if -2*i+j/2-0.5 > 0 && -1*i-j < 0 {
+						stream <- base.Datapoint{
+							X: []float64{float64(i), float64(j)},
+							Y: []float64{2.0},
+						}
+					} else if -2*i+j/2-0.5 > 0 && -1*i-j > 0 {
+						stream <- base.Datapoint{
+							X: []float64{float64(i), float64(j)},
+							Y: []float64{1.0},
+						}
+					} else {
+						stream <- base.Datapoint{
+							X: []float64{float64(i), float64(j)},
+							Y: []float64{0.0},
+						}
+					}
+				}
+			}
+		}
+
+		// close the dataset
+		close(stream)
+	}()
+
+	for {
+		err, more := <-errors
+
+		assert.Nil(t, err, "There should not be any errors!")
+		assert.False(t, more, "There should not be any errors!")
+		if !more {
+			break
+		}
+	}
+
+	var guess []float64
+	var count int
+	var incorrect int
+	var err error
+
+	for i := -1.0; i < 1.0; i += 0.113 {
+		for j := -1.0; j < 1.0; j += 0.113 {
+			guess, err = model.Predict([]float64{float64(i), float64(j)}, true)
+
+			prediction := maxI(guess)
+
+			if -2*i+j/2-0.5 > 0 && -1*i-j < 0 {
+				if prediction != 2 {
+					incorrect++
+				}
+
+			} else if -2*i+j/2-0.5 > 0 && -1*i-j > 0 {
+				if prediction != 1 {
+					incorrect++
+				}
+
+			} else {
+				if prediction != 0 {
+					incorrect++
+				}
+
+			}
+
+			assert.Len(t, guess, 3, "Length of a Softmax model output from hypothesis should reflect the input dimensions")
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			count++
+		}
+	}
+
+	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
+	assert.True(t, float64(incorrect)/float64(count) < 0.14, "Accuracy should be greater than 86%")
+}
+
+//* Test Model Persistance to File *//
+
 // test persisting y=x to file
 func TestPersistSoftmaxShouldPass1(t *testing.T) {
 	var err error

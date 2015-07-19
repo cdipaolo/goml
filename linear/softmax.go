@@ -71,12 +71,12 @@ func abs(x float64) float64 {
 // iterations the data can go through in gradient descent,
 // as well as a training set and expected results for that
 // training set.
-func NewSoftmax(method base.OptimizationMethod, alpha, regularization float64, k, maxIterations int, trainingSet [][]float64, expectedResults []float64) *Softmax {
+func NewSoftmax(method base.OptimizationMethod, alpha, regularization float64, k, maxIterations int, trainingSet [][]float64, expectedResults []float64, features ...int) *Softmax {
 	params := make([][]float64, k)
 
-	if trainingSet == nil || len(trainingSet) == 0 {
+	if len(features) != 0 || trainingSet == nil || len(trainingSet) == 0 {
 		for i := range params {
-			params[i] = []float64{}
+			params[i] = make([]float64, features[0]+1)
 		}
 	} else {
 		for i := range params {
@@ -295,6 +295,142 @@ func (s *Softmax) Learn() error {
 
 	fmt.Printf("Training Completed.\n%v\n\n", s)
 	return nil
+}
+
+// OnlineLearn runs similar to using a fixed dataset with
+// Stochastic Gradient Descent, but it handles data by
+// passing it as a channal, and returns errors through
+// a channel, which lets it run responsive to inputted data
+// from outside the model itself (like using data from the
+// stock market at timed intervals or using realtime data
+// about the weather.)
+//
+// The onUpdate callback is called whenever the parameter
+// vector theta is changed, so you are able to persist the
+// model with the most up to date vector at all times (you
+// could persist to a database within the callback, for
+// example.) Don't worry about it taking too long and blocking,
+// because the callback is spawned into another goroutine.
+//
+// NOTE that this function is suggested to run in it's own
+// goroutine, or at least is designed as such.
+//
+// NOTE part 2: You can pass in an empty dataset, so long
+// as it's not nil, and start pushing after.
+//
+// NOTE part 3: each example is only looked at as it goes
+// through the channel, so if you want to have each example
+// looked at more than once you must manually pass the data
+// yourself.
+//
+// NOTE part 4: the optional parameter 'normalize' will
+// , if true, normalize all data streamed through the
+// channel to unit length. This will affect the outcome
+// of the hypothesis, though it could be favorable if
+// your data comes in drastically different scales.
+//
+func (s *Softmax) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
+	if dataset == nil {
+		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
+		fmt.Printf(err.Error())
+		errors <- err
+		close(errors)
+		return
+	}
+
+	if errors == nil {
+		errors = make(chan error)
+	}
+
+	fmt.Printf("Training:\n\tModel: Softmax Classifier (%v classes)\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", s.k, len(s.Parameters), s.alpha)
+
+	norm := len(normalize) != 0 && normalize[0]
+	var point base.Datapoint
+	var more bool
+
+	for {
+		point, more = <-dataset
+
+		if more {
+			if len(point.Y) != 1 {
+				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)
+				continue
+			}
+
+			if norm {
+				base.NormalizePoint(point.X)
+			}
+
+			// go over each parameter vector for each
+			// classification value
+			for k, theta := range s.Parameters {
+				dj, err := func(point base.Datapoint, j int) ([]float64, error) {
+					grad := make([]float64, len(s.Parameters[0]))
+
+					// account for constant term
+					x := append([]float64{1}, point.X...)
+
+					var ident float64
+					if abs(point.Y[0]-float64(k)) < 1e-3 {
+						ident = 1
+					}
+
+					var numerator float64
+					var denom float64
+					for a := 0; a < s.k; a++ {
+						var inside float64
+
+						// calculate theta * x
+						for l, val := range s.Parameters[int(k)] {
+							inside += val * x[l]
+						}
+
+						if a == k {
+							numerator = math.Exp(inside)
+						}
+
+						denom += math.Exp(inside)
+					}
+
+					for a := range grad {
+						grad[a] += x[a] * (ident - numerator/denom)
+					}
+
+					// add in the regularization term
+					// λ*θ[j]
+					//
+					// notice that we don't count the
+					// constant term
+					for j := range grad {
+						grad[j] += s.regularization * s.Parameters[k][j]
+					}
+
+					return grad, nil
+				}(point, k)
+				if err != nil {
+					errors <- err
+					return
+				}
+
+				// now simultaneously update theta
+				for j := range theta {
+					newθ := theta[j] + s.alpha*dj[j]
+					if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
+						errors <- fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+						return
+					}
+					s.Parameters[k][j] = newθ
+				}
+			}
+
+			go onUpdate(s.Parameters)
+
+		} else {
+			fmt.Printf("Training Completed.\n%v\n\n", s)
+			close(errors)
+			return
+		}
+	}
 }
 
 // String implements the fmt interface for clean printing. Here
