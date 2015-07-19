@@ -74,9 +74,13 @@ func abs(x float64) float64 {
 func NewSoftmax(method base.OptimizationMethod, alpha, regularization float64, k, maxIterations int, trainingSet [][]float64, expectedResults []float64, features ...int) *Softmax {
 	params := make([][]float64, k)
 
-	if len(features) != 0 || trainingSet == nil || len(trainingSet) == 0 {
+	if len(features) != 0 {
 		for i := range params {
 			params[i] = make([]float64, features[0]+1)
+		}
+	} else if trainingSet == nil || len(trainingSet) == 0 {
+		for i := range params {
+			params[i] = []float64{}
 		}
 	} else {
 		for i := range params {
