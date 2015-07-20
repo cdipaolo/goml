@@ -21,9 +21,9 @@ func GradientAscent(d Ascendable) error {
 	MaxIterations := d.MaxIterations()
 
 	// if the iterations given is 0, set it to be
-	// 5000 (seems reasonable base value)
+	// 250 (seems reasonable base value)
 	if MaxIterations == 0 {
-		MaxIterations = 5000
+		MaxIterations = 250
 	}
 
 	var iter int
@@ -81,9 +81,9 @@ func StochasticGradientAscent(d StochasticAscendable) error {
 	Examples := d.Examples()
 
 	// if the iterations given is 0, set it to be
-	// 5000 (seems reasonable base value)
+	// 250 (seems reasonable base value)
 	if MaxIterations == 0 {
-		MaxIterations = 5000
+		MaxIterations = 250
 	}
 
 	var iter int
