@@ -13,19 +13,19 @@ func TestGaussianKernelShouldPass1(t *testing.T) {
 	// test different dot products which
 	// should be valid
 
-	assert.InDelta(t, math.Exp(-1*1.0 / 2, k([]float64{
+	assert.InDelta(t, math.Exp(-1*1.0/2), k([]float64{
 		0.0, 1.0, 1.0, 0.0,
 	}, []float64{
 		0.0, 1.0, 0.0, 0.0,
 	}), 5e-4, "Dot product should be valid")
 
-	assert.InDelta(t, math.Exp(-1*3.0 / 2, k([]float64{
+	assert.InDelta(t, math.Exp(-1*277.0/2), k([]float64{
 		15.0, 1.0, -1.0, 0.0,
 	}, []float64{
 		1.0, 1.0, 10.0, 0.0,
 	}), 5e-4, "Dot product should be valid")
 
-	assert.InDelta(t, math.Exp(-1*-87.0 / 2, k([]float64{
+	assert.InDelta(t, math.Exp(-1*7569.0/2), k([]float64{
 		15.0, 1.0, -1.0, 0.0,
 	}, []float64{
 		1.0, 1.0, 100.0, 0.0,
@@ -38,19 +38,19 @@ func TestGaussianKernelShouldPass2(t *testing.T) {
 	// test different dot products which
 	// should be valid
 
-	assert.InDelta(t, math.Exp(-1*1.0 / 32, k([]float64{
+	assert.InDelta(t, math.Exp(-1*1.0/32), k([]float64{
 		0.0, 1.0, 1.0, 0.0,
 	}, []float64{
 		0.0, 1.0, 0.0, 0.0,
 	}), 5e-4, "Dot product should be valid")
 
-	assert.InDelta(t, math.Exp(-1*3.0 / 32, k([]float64{
+	assert.InDelta(t, math.Exp(-1*277.0/32), k([]float64{
 		15.0, 1.0, -1.0, 0.0,
 	}, []float64{
 		1.0, 1.0, 10.0, 0.0,
 	}), 5e-4, "Dot product should be valid")
 
-	assert.InDelta(t, math.Exp(-1*-87.0 / 32, k([]float64{
+	assert.InDelta(t, math.Exp(-1*7569.0/32), k([]float64{
 		15.0, 1.0, -1.0, 0.0,
 	}, []float64{
 		1.0, 1.0, 100.0, 0.0,

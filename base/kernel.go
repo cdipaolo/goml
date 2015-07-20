@@ -19,7 +19,7 @@ import (
 // Sigma (σ) will default to 1 if given 0.0
 func GaussianKernel(sigma float64) func([]float64, []float64) float64 {
 	if sigma == 0 {
-		sigma = 1
+		sigma = 1.0
 	}
 
 	denom := 2 * sigma * sigma
