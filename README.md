@@ -4,24 +4,28 @@
 [![GoDoc](https://godoc.org/github.com/cdipaolo/goml?status.svg)](https://godoc.org/github.com/cdipaolo/goml)
 [![wercker status](https://app.wercker.com/status/50a8cfa6170784809e3308941212cef4/s "wercker status")](https://app.wercker.com/project/bykey/50a8cfa6170784809e3308941212cef4)
 
-goml (pronounced like the data format 'toml') is a batteries included machine learning library written entirely in Golang. It lets you create models of data stored as float64's, persist them to disk, and predict other values from them.
+goml (pronounced like the data format 'toml') is a batteries included machine learning library written entirely in Golang. It lets you create models of data stored as float64's, persist them to disk, and predict other values from them. **The coolest part, among many cool parts, is that you can train all models in an on-line fashion, learning in a 'reactive' manner while waiting for further data on channels!**
 
-You could use the `golearn` package @sjwhitworth wrote, but mine has kind error messages! :smile:. On a more serious note, I'm making this library to learn about machine learning. It works, don't misunderstand, and due to that the code is really well commented and structured for ease of extension in case you want to write a more individual model (in many of those cases I'd hope you made it into a pull request as well.)
-
-Each of the packages have individual README's where you can learn about how to use each of the models.
+Each of the packages have individual README's where you can learn about how to use each of the models. Even better than the short summaries in the README is the **extensive documentation with examples and descriptions** in GoDoc (look at the button above.) You could also look at our **comprehensive tests** to see error handline and other details, as well as look at the **clean, expressive, and modular source code**.
 
 ## Installation
 
-yes. It's this easy. Just install the base package and any other packages you might need. In some cases you might not even need the base package, but it can be useful if you want to persist a dataset to a file (though persisting a model is handled through each respective package)
-
 ```bash
 go get github.com/cdipaolo/goml/base
+
+# This could be any other model package if you want
+#
+# Also, the base package is imported already
+# by many of the packages so you might not even
+# need to `go get` the package explicitly
 go get github.com/cdipaolo/goml/perceptron
 ```
 
 ## Documentation
 
-All the code is well documented, and the source is/should be really readable if you'd like to make sense of it all! Look at each package (like right now, in GitHub,) and you will see a link to Godoc as well as an explanation of the package and an example usage. You can even click on the main bullets below and it'll take you to those packages, because I'm just that nice of a guy :smile:! Also you could just use the Godoc link at the top of this README and navigate to the package you'd like to see more about.
+All the code is well documented, and the source is/should be really readable if you'd like to make sense of it all! Look at each package (like right now, in GitHub,) and you will see a link to Godoc as well as an explanation of the package and an example usage. You can even click on the main bullets below and it'll take you to those packages. Also you could just use the Godoc link at the top of this README and navigate to the package you'd like to see more about.
+
+Sub-bullets below will take you directly to the source code of the model.
 
 ## Currently Implemented Models
 
@@ -31,6 +35,7 @@ All the code is well documented, and the source is/should be really readable if 
   * [Softmax Regression](linear/softmax.go)
 - [Perceptron](perceptron/)
   * [Online, Binary Perceptron](perceptron/perceptron.go)
+  * [Online, Binary Kernel Perceptron](perceptron/kernel_perceptron.go)
 
 ## Contributing!
 
