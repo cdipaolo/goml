@@ -139,6 +139,74 @@ func (p *KernelPerceptron) Predict(x []float64, normalize ...bool) ([]float64, e
 // converge faster. This is given as a parameter because
 // you won't have direct access to the dataset before
 // hand like you would in batch/stochastic settings.
+//
+// Example Online Kernel Perceptron:
+//
+//     // create the channel of data and errors
+//     stream := make(chan base.Datapoint, 100)
+//     errors := make(chan error)
+//
+//     // The kernel could be any kernel from the Base
+//     // package, or it could be your own function!
+//     // I suggest you look at the code for the kernels
+//     // if you want to make sense of them. It's pretty
+//     // intuitive and simple.
+//     model := NewKernelPerceptron(base.GaussianKernel(50))
+//
+//     go model.OnlineLearn(errors, stream, func(SV [][]float64) {
+//         // do something with the newly added support
+//         // vector (persist to database?) in here.
+//     })
+//
+//     go func() {
+//         for iterations := 0; iterations < 20; iterations++ {
+//             for i := -200.0; abs(i) > 1; i *= -0.7 {
+//                 for j := -200.0; abs(j) > 1; j *= -0.7 {
+//                     for k := -200.0; abs(k) > 1; k *= -0.7 {
+//                         for l := -200.0; abs(l) > 1; l *= -0.7 {
+//                             if i/2+2*k-4*j+2*l+3 > 0 {
+//                                 stream <- base.Datapoint{
+//                                     X: []float64{i, j, k, l},
+//                                     Y: []float64{1.0},
+//                                 }
+//                             } else {
+//                                 stream <- base.Datapoint{
+//                                     X: []float64{i, j, k, l},
+//                                     Y: []float64{-1.0},
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         // close the dataset to tell the model
+//         // to stop learning when it finishes reading
+//         // what's left in the channel
+//         close(stream)
+//     }()
+//
+//     // this will block until the error
+//     // channel is closed in the learning
+//     // function (it will, don't worry!)
+//     for {
+//         err, more := <-errors
+//         if err != nil {
+//             panic("THERE WAS AN ERROR!!! RUN!!!!")
+//         }
+//         if !more {
+//             break
+//         }
+//     }
+//
+//     // Below here all the learning is completed
+//
+//     // predict like usual
+//     guess, err = model.Predict([]float64{42,6,10,-32})
+//     if err != nil {
+//         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+//     }
 func (p *KernelPerceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
 	if dataset == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")

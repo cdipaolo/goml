@@ -33,6 +33,8 @@ It should be noted that you want interspersion between the results you pass, tha
 ### implemented models
 
 - [binary, online perceptron](perceptron.go)
+- [binary, online kernel perceptron](kernel_perceptron.go)
+	* this model uses more memory than the regular perceptron, but by using the kernel trick it allows you to input theoretically infinite feature spaces into it as well as fitting non-linear decision boundaries with the model! You can use ready-made (though custimizable) kernels from the `goml/base` package. It will take longer to train, as well.
 
 # example binary, online perceptron
 

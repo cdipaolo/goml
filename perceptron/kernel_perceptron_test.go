@@ -271,27 +271,29 @@ func TestGaussianKernelFourDXShouldPass1(t *testing.T) {
 	})
 
 	var count int
-	for i := -200.0; abs(i) > 1; i *= -0.7 {
-		for j := -200.0; abs(j) > 1; j *= -0.7 {
-			for k := -200.0; abs(k) > 1; k *= -0.7 {
-				for l := -200.0; abs(l) > 1; l *= -0.7 {
-					if i/2+2*k-4*j+2*l+3 > 0 {
-						stream <- base.Datapoint{
-							X: []float64{i, j, k, l},
-							Y: []float64{1.0},
+	go func() {
+		for i := -200.0; abs(i) > 1; i *= -0.7 {
+			for j := -200.0; abs(j) > 1; j *= -0.7 {
+				for k := -200.0; abs(k) > 1; k *= -0.7 {
+					for l := -200.0; abs(l) > 1; l *= -0.7 {
+						if i/2+2*k-4*j+2*l+3 > 0 {
+							stream <- base.Datapoint{
+								X: []float64{i, j, k, l},
+								Y: []float64{1.0},
+							}
+						} else {
+							stream <- base.Datapoint{
+								X: []float64{i, j, k, l},
+								Y: []float64{-1.0},
+							}
 						}
-					} else {
-						stream <- base.Datapoint{
-							X: []float64{i, j, k, l},
-							Y: []float64{-1.0},
-						}
-					}
 
-					count++
+						count++
+					}
 				}
 			}
 		}
-	}
+	}()
 
 	fmt.Printf("%v Training Examples Pushed\n", count)
 
