@@ -7,6 +7,56 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGaussianKernelShouldPass1(t *testing.T) {
+	k := GaussianKernel(1.0)
+
+	// test different dot products which
+	// should be valid
+
+	assert.InDelta(t, math.Exp(-1*1.0 / 2, k([]float64{
+		0.0, 1.0, 1.0, 0.0,
+	}, []float64{
+		0.0, 1.0, 0.0, 0.0,
+	}), 5e-4, "Dot product should be valid")
+
+	assert.InDelta(t, math.Exp(-1*3.0 / 2, k([]float64{
+		15.0, 1.0, -1.0, 0.0,
+	}, []float64{
+		1.0, 1.0, 10.0, 0.0,
+	}), 5e-4, "Dot product should be valid")
+
+	assert.InDelta(t, math.Exp(-1*-87.0 / 2, k([]float64{
+		15.0, 1.0, -1.0, 0.0,
+	}, []float64{
+		1.0, 1.0, 100.0, 0.0,
+	}), 5e-4, "Dot product should be valid")
+}
+
+func TestGaussianKernelShouldPass2(t *testing.T) {
+	k := GaussianKernel(4.0)
+
+	// test different dot products which
+	// should be valid
+
+	assert.InDelta(t, math.Exp(-1*1.0 / 32, k([]float64{
+		0.0, 1.0, 1.0, 0.0,
+	}, []float64{
+		0.0, 1.0, 0.0, 0.0,
+	}), 5e-4, "Dot product should be valid")
+
+	assert.InDelta(t, math.Exp(-1*3.0 / 32, k([]float64{
+		15.0, 1.0, -1.0, 0.0,
+	}, []float64{
+		1.0, 1.0, 10.0, 0.0,
+	}), 5e-4, "Dot product should be valid")
+
+	assert.InDelta(t, math.Exp(-1*-87.0 / 32, k([]float64{
+		15.0, 1.0, -1.0, 0.0,
+	}, []float64{
+		1.0, 1.0, 100.0, 0.0,
+	}), 5e-4, "Dot product should be valid")
+}
+
 func TestLinearKernelShouldPass1(t *testing.T) {
 	k := LinearKernel()
 
