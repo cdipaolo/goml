@@ -42,12 +42,12 @@ func TestLocalLinearShouldPass1(t *testing.T) {
 		}
 	}
 
-	model := NewLocalLinear(base.BatchGA, 1e-4, 0, 0.75, 1500, x, y)
+	model := NewLocalLinear(base.BatchGA, 1e-4, 0, 0.75, 500, x, y)
 
 	var count int
 	var err float64
-	for i := -15.0; i < 15; i += 4.98 {
-		for j := -15.0; j < 15; j += 4.98 {
+	for i := -15.0; i < 15; i += 7 {
+		for j := -15.0; j < 15; j += 7 {
 			guess, predErr := model.Predict([]float64{i, j})
 			assert.Nil(t, predErr, "learning/prediction error should be nil")
 			count++
@@ -58,7 +58,7 @@ func TestLocalLinearShouldPass1(t *testing.T) {
 
 	avgError := err / float64(count)
 
-	assert.True(t, avgError < 0.4, "Average error should be less than 0.4 (currently %v)", avgError)
+	assert.True(t, avgError < 0.4, "Average error should be less than 0.4 from the expected value of the linear data (currently %v)", avgError)
 	fmt.Printf("Average Error: %v\n\tPoints Tested: %v\n\tTotal Error: %v\n", avgError, count, err)
 }
 
@@ -91,12 +91,12 @@ func TestLocalLinearShouldPass2(t *testing.T) {
 		}
 	}
 
-	model := NewLocalLinear(base.StochasticGA, 1e-4, 0, 0.75, 1500, x, y)
+	model := NewLocalLinear(base.StochasticGA, 1e-4, 0, 0.75, 500, x, y)
 
 	var count int
 	var err float64
-	for i := -15.0; i < 15; i += 4.98 {
-		for j := -15.0; j < 15; j += 4.98 {
+	for i := -15.0; i < 15; i += 7 {
+		for j := -15.0; j < 15; j += 7 {
 			guess, predErr := model.Predict([]float64{i, j})
 			assert.Nil(t, predErr, "learning/prediction error should be nil")
 			count++
@@ -107,6 +107,6 @@ func TestLocalLinearShouldPass2(t *testing.T) {
 
 	avgError := err / float64(count)
 
-	assert.True(t, avgError < 0.4, "Average error should be less than 0.4 (currently %v)", avgError)
+	assert.True(t, avgError < 0.4, "Average error should be less than 0.4 from the expected value of the linear data (currently %v)", avgError)
 	fmt.Printf("Average Error: %v\n\tPoints Tested: %v\n\tTotal Error: %v\n", avgError, count, err)
 }

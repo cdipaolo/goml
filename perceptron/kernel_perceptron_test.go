@@ -293,12 +293,12 @@ func TestGaussianKernelFourDXShouldPass1(t *testing.T) {
 				}
 			}
 		}
+
+		// close the dataset
+		close(stream)
 	}()
 
 	fmt.Printf("%v Training Examples Pushed\n", count)
-
-	// close the dataset
-	close(stream)
 
 	err, more := <-errors
 	assert.Nil(t, err, "Learning error should be nil")
