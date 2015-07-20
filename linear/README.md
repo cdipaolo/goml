@@ -8,6 +8,7 @@ This part of the `goml` package implements varied generalized linear models usin
 ### implemented models
 
 - [ordinary least squares](linear.go)
+- [locally weighted linear regression](local_linear.go)
 - [logistic regression](logistic.go)
 - [softmax regression (multiclass logistic regression)](softmax.go)
 

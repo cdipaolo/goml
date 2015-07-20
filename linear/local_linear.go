@@ -23,9 +23,55 @@ import (
 // given input, then returns the trained hypothesis
 // when evaluated at the given input.
 //
+// While that may sound really inefficient, sometimes
+// this model can perform well with little tweaking,
+// especially if you're working with a smaller data
+// set to train off of. Andrew Ng said in one of his
+// Stanford CS229 lectures that Locally Weighted
+// Linear Regression is one of his mentor's 'favourite'
+// 'off-the-shelf' learning algorithm. Obviously
+// model selection plays a large role in this.
+//
 // NOTE that there is no file persistance of this
 // model because you need to retrain at the time
 // of every prediction anyway.
+//
+// Example Locally Weighted Linear Regression Usage:
+//
+//     x := [][]float64{}
+//     y := []float64{}
+//
+//     // throw in some junk points which
+//     // should be more-or-less ignored
+//     // by the weighting
+//     for i := -70.0; i < -65; i += 2 {
+//         for j := -70.0; j < -65; j += 2 {
+//             x = append(x, []float64{i, j})
+//             y = append(y, 20*(rand.Float64()-0.5))
+//         }
+//     }
+//     for i := 65.0; i < 70; i += 2 {
+//         for j := 65.0; j < 70; j += 2 {
+//             x = append(x, []float64{i, j})
+//             y = append(y, 20*(rand.Float64()-0.5))
+//         }
+//     }
+//
+//     // put in some linear points
+//     for i := -20.0; i < 20; i++ {
+//         for j := -20.0; j < 20; j++ {
+//             x = append(x, []float64{i, j})
+//             y = append(y, 5*i-5*j-10)
+//         }
+//     }
+//
+//     model := NewLocalLinear(base.StochasticGA, 1e-4, 0, 0.75, 1500, x, y)
+//
+//     // now when you predict it'll train off the
+//     // dataset, weighting points closer to the
+//     // targer evaluation more, then return
+//     // the prediction.
+//     guess, err := model.Predict([]float64{10.0, -13.666})
 type LocalLinear struct {
 	// alpha and maxIterations are used only for
 	// GradientAscent during learning. If maxIterations

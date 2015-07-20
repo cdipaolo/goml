@@ -31,6 +31,7 @@ Sub-bullets below will take you directly to the source code of the model.
 
 - [Generalized Linear Models](linear/)
   * [Ordinary Least Squares](linear/linear.go)
+  * [Locally Weighted Linear Regression](linear/local_linear.go)
   * [Logistic Regression](linear/logistic.go)
   * [Softmax Regression](linear/softmax.go)
 - [Perceptron](perceptron/)
