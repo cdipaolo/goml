@@ -33,7 +33,7 @@ Sub-bullets below will take you directly to the source code of the model.
   * [Ordinary Least Squares](linear/linear.go)
   * [Locally Weighted Linear Regression](linear/local_linear.go)
   * [Logistic Regression](linear/logistic.go)
-  * [Softmax Regression](linear/softmax.go)
+  * [Softmax (Multiclass Logistic) Regression](linear/softmax.go)
 - [Perceptron](perceptron/)
   * [Online, Binary Perceptron](perceptron/perceptron.go)
   * [Online, Binary Kernel Perceptron](perceptron/kernel_perceptron.go)
