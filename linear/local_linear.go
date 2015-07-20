@@ -2,11 +2,8 @@ package linear
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math"
-	"os"
 
 	"github.com/cdipaolo/goml/base"
 )
@@ -24,7 +21,11 @@ import (
 // calling predict the model first learns from the
 // data set with weights set with respect to the
 // given input, then returns the trained hypothesis
-// when evaluated at the given input
+// when evaluated at the given input.
+//
+// NOTE that there is no file persistance of this
+// model because you need to retrain at the time
+// of every prediction anyway.
 type LocalLinear struct {
 	// alpha and maxIterations are used only for
 	// GradientAscent during learning. If maxIterations
@@ -417,58 +418,4 @@ func (l *LocalLinear) J() (float64, error) {
 	}
 
 	return sum / float64(2*len(l.trainingSet)), nil
-}
-
-// PersistToFile takes in an absolute filepath and saves the
-// parameter vector θ to the file, which can be restored later.
-// The function will take paths from the current directory, but
-// functions
-//
-// The data is stored as JSON because it's one of the most
-// efficient storage method (you only need one comma extra
-// per feature + two brackets, total!) And it's extendable.
-func (l *LocalLinear) PersistToFile(path string) error {
-	if path == "" {
-		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath")
-	}
-
-	bytes, err := json.Marshal(l.Parameters)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(path, bytes, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// RestoreFromFile takes in a path to a parameter vector theta
-// and assigns the model it's operating on's parameter vector
-// to that.
-//
-// The path must ba an absolute path or a path from the current
-// directory
-//
-// This would be useful in persisting data between running
-// a model on data, or for graphing a dataset with a fit in
-// another framework like Julia/Gadfly.
-func (l *LocalLinear) RestoreFromFile(path string) error {
-	if path == "" {
-		return fmt.Errorf("ERROR: you just tried to restore your model from a file with no path! That's a no-no. Try it with a valid filepath")
-	}
-
-	bytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(bytes, &l.Parameters)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
