@@ -227,7 +227,7 @@ func (p *KernelPerceptron) PersistToFile(path string) error {
 		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath")
 	}
 
-	bytes, err := json.Marshal(p)
+	bytes, err := json.Marshal(p.SV)
 	if err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func (p *KernelPerceptron) RestoreFromFile(path string) error {
 		return err
 	}
 
-	err = json.Unmarshal(bytes, &p)
+	err = json.Unmarshal(bytes, &p.SV)
 	if err != nil {
 		return err
 	}

@@ -1,9 +1,6 @@
 package base
 
-import (
-	"fmt"
-	"math"
-)
+import "math"
 
 // GaussianKernel takes in a parameter for sigma (σ)
 // and returns a valid (Gaussian) Radial Basis Function
@@ -157,8 +154,6 @@ func TanhKernel(k float64, constants ...float64) func([]float64, []float64) floa
 	if c >= 0.0 {
 		c = -1.0
 	}
-
-	fmt.Println("Kernel: ", k, c, constants)
 
 	return func(X []float64, x []float64) float64 {
 		// don't throw error but fail peacefully
