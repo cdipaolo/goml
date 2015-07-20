@@ -343,12 +343,12 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 			}
 
 			if len(point.Y) != 1 {
-				errors <- fmt.Errorf("The binary perceptron model requires that the data results be in {-1,1}")
+				errors <- fmt.Errorf("The binary perceptron model requires that the data results (y) have length 1 - given %v", len(point.Y))
 				continue
 			}
 
 			if len(point.X) != len(p.Parameters)-1 {
-				errors <- fmt.Errorf("The binary perceptron model requires that the data results be in {-1,1}")
+				errors <- fmt.Errorf("The binary perceptron model requires that the length of input data (currently %v) be one less than the length of the parameter vector (%v)", len(point.X), len(p.Parameters))
 				continue
 			}
 
