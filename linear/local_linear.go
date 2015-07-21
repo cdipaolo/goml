@@ -12,6 +12,7 @@ import (
 // linear least squares regression.
 //
 // https://en.wikipedia.org/wiki/Least_squares
+// http://cs229.stanford.edu/notes/cs229-notes1.pdf
 //
 // Note that this is not modeled to work in an
 // online setting, so the model does not implement
