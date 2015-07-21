@@ -33,7 +33,7 @@ func TestLinearKernelOneDXShouldPass1(t *testing.T) {
 	// we could have data already in our channel
 	// when we instantiated the Perceptron, though
 	var points int
-	for i := -20.1; abs(i) > 1; i *= -0.997 {
+	for i := -20.1; abs(i) > 1; i *= -0.996 {
 		points++
 		if (i-20)/2 > 0 {
 			stream <- base.Datapoint{
@@ -61,7 +61,7 @@ func TestLinearKernelOneDXShouldPass1(t *testing.T) {
 	// test a larger dataset now
 	count := 0
 	wrong := 0
-	for i := -500.0; i < 500; i++ {
+	for i := -500.0; i < 500; i += 10 {
 		guess, err := model.Predict([]float64{i})
 		assert.Nil(t, err, "Prediction error should be nil")
 		assert.Len(t, guess, 1, "Guess should have length 1")
@@ -92,7 +92,7 @@ func TestLinearKernelOneDXShouldFail1(t *testing.T) {
 	go model.OnlineLearn(errors, stream, func(supportVector [][]float64) {})
 
 	// give invalid data when it should be -1
-	for i := -500.0; abs(i) > 1; i *= -0.99 {
+	for i := -500.0; abs(i) > 1; i *= -0.2 {
 		if (i-20)/2+10 > 0 {
 			stream <- base.Datapoint{
 				X: []float64{i - 20},
@@ -130,7 +130,7 @@ func TestLinearKernelOneDXShouldFail2(t *testing.T) {
 	go model.OnlineLearn(errors, stream, func(supportVector [][]float64) {})
 
 	// give invalid data when it should be -1
-	for i := -500.0; abs(i) > 1; i *= -0.99 {
+	for i := -500.0; abs(i) > 1; i *= -0.2 {
 		if i/10+20 > 0 {
 			stream <- base.Datapoint{
 				X: []float64{i},
@@ -186,7 +186,7 @@ func TestLinearKernelFourDXShouldPass1(t *testing.T) {
 
 	model := NewKernelPerceptron(base.LinearKernel())
 
-	go model.OnlineLearn(errors, stream, func(theta [][]float64) {
+	go model.OnlineLearn(errors, stream, func(supportVector [][]float64) {
 		updates++
 	})
 
@@ -227,10 +227,10 @@ func TestLinearKernelFourDXShouldPass1(t *testing.T) {
 	count = 0
 	wrong := 0
 
-	for i := -200.0; i < 200; i += 100 {
-		for j := -200.0; j < 200; j += 100 {
-			for k := -200.0; k < 200; k += 100 {
-				for l := -200.0; l < 200; l += 100 {
+	for i := -200.0; i < 200; i += 99.9 {
+		for j := -200.0; j < 200; j += 99.9 {
+			for k := -200.0; k < 200; k += 99.9 {
+				for l := -200.0; l < 200; l += 99.9 {
 					guess, err := model.Predict([]float64{i, j, k, l})
 					assert.Nil(t, err, "Prediction error should be nil")
 					assert.Len(t, guess, 1, "Guess should have length 1")
@@ -266,7 +266,7 @@ func TestGaussianKernelFourDXShouldPass1(t *testing.T) {
 
 	model := NewKernelPerceptron(base.GaussianKernel(50))
 
-	go model.OnlineLearn(errors, stream, func(theta [][]float64) {
+	go model.OnlineLearn(errors, stream, func(supportVector [][]float64) {
 		updates++
 	})
 
@@ -339,6 +339,63 @@ func TestGaussianKernelFourDXShouldPass1(t *testing.T) {
 	fmt.Printf("Accuracy: %v\n\tPoints Tested: %v\n\tMisclassifications: %v\n", accuracy, count, wrong)
 }
 
+func TestGaussianKernelXORShouldPass1(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 100)
+	errors := make(chan error)
+
+	model := NewKernelPerceptron(base.GaussianKernel(1))
+
+	go model.OnlineLearn(errors, stream, func(supportVector [][]float64) {})
+
+	var count int
+	go func() {
+		for i := 0; i < 3; i++ {
+			stream <- base.Datapoint{
+				X: []float64{0, 0},
+				Y: []float64{-1},
+			}
+			stream <- base.Datapoint{
+				X: []float64{0, 1},
+				Y: []float64{1},
+			}
+			stream <- base.Datapoint{
+				X: []float64{1, 0},
+				Y: []float64{1},
+			}
+			stream <- base.Datapoint{
+				X: []float64{1, 1},
+				Y: []float64{-1},
+			}
+			count += 4
+		}
+
+		// close the dataset
+		close(stream)
+	}()
+
+	fmt.Printf("%v Training Examples Pushed\n", count)
+
+	err, more := <-errors
+	assert.Nil(t, err, "Learning error should be nil")
+	assert.False(t, more, "There should be no errors returned")
+
+	for i := 0; i < 2; i++ {
+		for j := 0; j < 2; j++ {
+			guess, err := model.Predict([]float64{float64(i), float64(j)})
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			fmt.Printf("h(%v, %v) = %v should equal i^j = %v^%v = %v mapped to -1,1 from 0,1\n", i, j, guess[0], i, j, i^j)
+
+			expected := 1.0
+			if i^j == 0 {
+				expected = -1.0
+			}
+			assert.Equal(t, expected, guess[0], "Guess should equal i^j (%v^%v = %v)", i, j, i^j)
+		}
+	}
+}
+
 func TestPolynomialKernelFourDXShouldPass1(t *testing.T) {
 	// create the channel of data and errors
 	stream := make(chan base.Datapoint, 100)
@@ -348,15 +405,15 @@ func TestPolynomialKernelFourDXShouldPass1(t *testing.T) {
 
 	model := NewKernelPerceptron(base.PolynomialKernel(3))
 
-	go model.OnlineLearn(errors, stream, func(theta [][]float64) {
+	go model.OnlineLearn(errors, stream, func(supportVector [][]float64) {
 		updates++
 	})
 
 	var count int
-	for i := -200.0; abs(i) > 1; i *= -0.65 {
-		for j := -200.0; abs(j) > 1; j *= -0.65 {
-			for k := -200.0; abs(k) > 1; k *= -0.65 {
-				for l := -200.0; abs(l) > 1; l *= -0.65 {
+	for i := -200.0; abs(i) > 1; i *= -0.52 {
+		for j := -200.0; abs(j) > 1; j *= -0.52 {
+			for k := -200.0; abs(k) > 1; k *= -0.52 {
+				for l := -200.0; abs(l) > 1; l *= -0.52 {
 					if i/2+2*k-4*j+2*l+3 > 0 {
 						stream <- base.Datapoint{
 							X: []float64{i, j, k, l},
@@ -389,10 +446,10 @@ func TestPolynomialKernelFourDXShouldPass1(t *testing.T) {
 	count = 0
 	wrong := 0
 
-	for i := -200.0; i < 200; i += 100 {
-		for j := -200.0; j < 200; j += 100 {
-			for k := -200.0; k < 200; k += 100 {
-				for l := -200.0; l < 200; l += 100 {
+	for i := -200.0; i < 200; i += 99.9 {
+		for j := -200.0; j < 200; j += 99.9 {
+			for k := -200.0; k < 200; k += 99.9 {
+				for l := -200.0; l < 200; l += 99.9 {
 					guess, err := model.Predict([]float64{i, j, k, l})
 					assert.Nil(t, err, "Prediction error should be nil")
 					assert.Len(t, guess, 1, "Guess should have length 1")
@@ -428,15 +485,15 @@ func TestTanhKernelFourDXShouldPass1(t *testing.T) {
 
 	model := NewKernelPerceptron(base.TanhKernel(5))
 
-	go model.OnlineLearn(errors, stream, func(theta [][]float64) {
+	go model.OnlineLearn(errors, stream, func(supportVector [][]float64) {
 		updates++
 	})
 
 	var count int
-	for i := -200.0; abs(i) > 1; i *= -0.45 {
-		for j := -200.0; abs(j) > 1; j *= -0.45 {
-			for k := -200.0; abs(k) > 1; k *= -0.45 {
-				for l := -200.0; abs(l) > 1; l *= -0.45 {
+	for i := -200.0; abs(i) > 1; i *= -0.44 {
+		for j := -200.0; abs(j) > 1; j *= -0.44 {
+			for k := -200.0; abs(k) > 1; k *= -0.44 {
+				for l := -200.0; abs(l) > 1; l *= -0.44 {
 					if i/2+2*k-4*j+2*l > 0 {
 						stream <- base.Datapoint{
 							X: []float64{i, j, k, l},
@@ -469,10 +526,10 @@ func TestTanhKernelFourDXShouldPass1(t *testing.T) {
 	count = 0
 	wrong := 0
 
-	for i := -200.0; i < 200; i += 100 {
-		for j := -200.0; j < 200; j += 100 {
-			for k := -200.0; k < 200; k += 100 {
-				for l := -200.0; l < 200; l += 100 {
+	for i := -200.0; i < 200; i += 99.9 {
+		for j := -200.0; j < 200; j += 99.9 {
+			for k := -200.0; k < 200; k += 99.9 {
+				for l := -200.0; l < 200; l += 99.9 {
 					guess, err := model.Predict([]float64{i, j, k, l})
 					assert.Nil(t, err, "Prediction error should be nil")
 					assert.Len(t, guess, 1, "Guess should have length 1")
@@ -504,16 +561,12 @@ func TestLinearKernelTwoDXNormalizedShouldPass1(t *testing.T) {
 	stream := make(chan base.Datapoint, 100)
 	errors := make(chan error)
 
-	var updates int
-
 	model := NewKernelPerceptron(base.LinearKernel())
 
-	go model.OnlineLearn(errors, stream, func(theta [][]float64) {
-		updates++
-	}, true)
+	go model.OnlineLearn(errors, stream, func(supportVector [][]float64) {}, true)
 
-	for i := -200.0; abs(i) > 1; i *= -0.981 {
-		for j := -200.0; abs(j) > 1; j *= -0.981 {
+	for i := -200.0; abs(i) > 1; i *= -0.57 {
+		for j := -200.0; abs(j) > 1; j *= -0.57 {
 			x := []float64{i, j}
 			base.NormalizePoint(x)
 
@@ -545,13 +598,11 @@ func TestLinearKernelTwoDXNormalizedShouldPass1(t *testing.T) {
 		}
 	}
 
-	assert.True(t, updates > 50, "There should be more than 50 updates of theta (%v updates recorded)", updates)
-
 	var count int
 	var incorrect int
 
-	for i := -200.0; abs(i) > 1; i *= -0.85 {
-		for j := -200.0; abs(j) > 1; j *= -0.85 {
+	for i := -200.0; abs(i) > 1; i *= -0.53 {
+		for j := -200.0; abs(j) > 1; j *= -0.53 {
 			x := []float64{i, j}
 			base.NormalizePoint(x)
 
@@ -623,10 +674,10 @@ func TestGaussianKernelPersistPerceptronShouldPass1(t *testing.T) {
 	// test a larger dataset now
 	var count int
 	var wrong int
-	for i := -200.0; i < 200; i += 100 {
-		for j := -200.0; j < 200; j += 100 {
-			for k := -200.0; k < 200; k += 100 {
-				for l := -200.0; l < 200; l += 100 {
+	for i := -200.0; i < 200; i += 99.9 {
+		for j := -200.0; j < 200; j += 99.9 {
+			for k := -200.0; k < 200; k += 99.9 {
+				for l := -200.0; l < 200; l += 99.9 {
 					guess, err := model.Predict([]float64{i, j, k, l})
 					assert.Nil(t, err, "Prediction error should be nil")
 					assert.Len(t, guess, 1, "Guess should have length 1")
@@ -664,10 +715,10 @@ func TestGaussianKernelPersistPerceptronShouldPass1(t *testing.T) {
 	// be 0 because theta is the zero vector right now.
 	wrong = 0
 	count = 0
-	for i := -200.0; i < 200; i += 100 {
-		for j := -200.0; j < 200; j += 100 {
-			for k := -200.0; k < 200; k += 100 {
-				for l := -200.0; l < 200; l += 100 {
+	for i := -200.0; i < 200; i += 99.9 {
+		for j := -200.0; j < 200; j += 99.9 {
+			for k := -200.0; k < 200; k += 99.9 {
+				for l := -200.0; l < 200; l += 99.9 {
 					guess, err := model.Predict([]float64{i, j, k, l})
 					assert.Nil(t, err, "Prediction error should be nil")
 					assert.Len(t, guess, 1, "Guess should have length 1")
@@ -700,10 +751,10 @@ func TestGaussianKernelPersistPerceptronShouldPass1(t *testing.T) {
 	// test a larger dataset now
 	wrong = 0
 	count = 0
-	for i := -200.0; i < 200; i += 100 {
-		for j := -200.0; j < 200; j += 100 {
-			for k := -200.0; k < 200; k += 100 {
-				for l := -200.0; l < 200; l += 100 {
+	for i := -200.0; i < 200; i += 99.9 {
+		for j := -200.0; j < 200; j += 99.9 {
+			for k := -200.0; k < 200; k += 99.9 {
+				for l := -200.0; l < 200; l += 99.9 {
 					guess, err := model.Predict([]float64{i, j, k, l})
 					assert.Nil(t, err, "Prediction error should be nil")
 					assert.Len(t, guess, 1, "Guess should have length 1")
