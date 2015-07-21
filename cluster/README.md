@@ -36,19 +36,6 @@ if model.Learn() != nil {
 	panic("Oh NO!!! There was an error learning!!")
 }
 
-// now predict with the same training set and
-// make sure the classes are the same within
-// each block
-c1, err := model.Predict([]float64{-7.5, 0})
-if err != nil {
-	panic("prediction error")
-}
-
-c2, err := model.Predict([]float64{7.5, 0})
-if err != nil {
-	panic("prediction error")
-}
-
 // now you can predict like normal!
 guess, err := model.Predict([]float64{-3, 6})
 if err != nil {
