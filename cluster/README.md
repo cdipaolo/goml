@@ -13,7 +13,7 @@ This part of the `goml` package implements clustering algorithms, unsupervised _
 
 This code produces two clusters (as expected,) which result in the following plot (made with `gnuplot`.) Note that I abbreviated the resultant dataset so you can actually see individual points:
 
-![Clusterd By K](k_means_clustered_data.svg "Data Clustered By The K-Means Unsupervised Clustering Algorithm")
+![Clusterd By K](k_means_clustered_data.png "Data Clustered By The K-Means Unsupervised Clustering Algorithm")
 
 ```go
 // initialize data with 2 clusters
