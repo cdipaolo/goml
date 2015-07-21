@@ -30,8 +30,79 @@ func diff(u, v []float64) float64 {
 	return sum
 }
 
-// KMeans implements the k-means unsupervised
-// clustering algorithm.
+/*
+KMeans implements the k-means unsupervised
+clustering algorithm.
+
+https://en.wikipedia.org/wiki/K-means_clustering
+
+Example KMeans Model Usage:
+
+	// initialize data with 2 clusters
+	double := [][]float64{}
+	for i := -10.0; i < -3; i += 0.1 {
+		for j := -10.0; j < 10; j += 0.1 {
+			double = append(double, []float64{i, j})
+		}
+	}
+
+	for i := 3.0; i < 10; i += 0.1 {
+		for j := -10.0; j < 10; j += 0.1 {
+			double = append(double, []float64{i, j})
+		}
+	}
+
+	model := NewKMeans(2, 30, double)
+
+	if model.Learn() != nil {
+		panic("Oh NO!!! There was an error learning!!")
+	}
+
+	// now predict with the same training set and
+	// make sure the classes are the same within
+	// each block
+	c1, err := model.Predict([]float64{-7.5, 0})
+	if err != nil {
+		panic("prediction error")
+	}
+
+	c2, err := model.Predict([]float64{7.5, 0})
+	if err != nil {
+		panic("prediction error")
+	}
+
+	// now you can predict like normal!
+	guess, err := model.Predict([]float64{-3, 6})
+	if err != nil {
+		panic("prediction error")
+	}
+
+	// or if you want to get the clustering
+	// results from the data
+	results := model.Guesses()
+
+	// you can also concat that with the
+	// training set and save it to a file
+	// (if you wanted to plot it or something)
+	err = model.SaveClusteredData("/tmp/.goml/KMeansResults.csv")
+	if err != nil {
+		panic("file save error")
+	}
+
+	// you can also persist the model to a
+	// file
+	err = model.PersistToFile("/tmp/.goml/KMeans.csv")
+	if err != nil {
+		panic("file save error")
+	}
+
+	// and also restore from file (at a
+	// later time if you want)
+	err = model.RestoreFromFile("/tmp/.goml/KMeans.csv")
+	if err != nil {
+		panic("file save error")
+	}
+*/
 type KMeans struct {
 	// maxIterations is the number of iterations
 	// the learning will be cut off at in a
@@ -240,6 +311,15 @@ func (k *KMeans) Learn() error {
 // where h is the k-means hypothesis model
 func (k *KMeans) String() string {
 	return fmt.Sprintf("h(θ,x) = argmin_j | x[i] - μ[j] |^2\n\tμ = %v", k.Centroids)
+}
+
+// Guesses returns the hidden parameter for the
+// unsupervised classification assigned during
+// learning.
+//
+//    model.Guesses[i] = E[k.trainingSet[i]]
+func (k *KMeans) Guesses() []int {
+	return k.guesses
 }
 
 // Distortion returns the distortion of the clustering

@@ -37,6 +37,8 @@ Sub-bullets below will take you directly to the source code of the model.
 - [Perceptron](perceptron/)
   * [Online, Binary Perceptron](perceptron/perceptron.go)
   * [Online, Binary Kernel Perceptron](perceptron/kernel_perceptron.go)
+- [Clustering](cluster/)
+  * [K-Means Clustering](cluster/kmeans.go)
 
 ## Contributing!
 
