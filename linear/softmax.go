@@ -156,7 +156,7 @@ func (s *Softmax) MaxIterations() int {
 // current parameter vector θ
 func (s *Softmax) Predict(x []float64, normalize ...bool) ([]float64, error) {
 	if len(s.Parameters) != 0 && len(x)+1 != len(s.Parameters[0]) {
-		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v\n", len(x), len(s.Parameters))
+		return nil, fmt.Errorf("Error: Parameter vector should be 1 longer than input vector!\n\tLength of x given: %v\n\tLength of parameters: %v (len(theta[0]) = %v)\n", len(x), len(s.Parameters), len(s.Parameters[0]))
 	}
 
 	if len(normalize) != 0 && normalize[0] {
@@ -220,7 +220,7 @@ func (s *Softmax) Learn() error {
 				s.maxIterations = 5000
 			}
 
-			iter := 1
+			iter := 0
 
 			// Stop iterating if the number of iterations exceeds
 			// the limit
@@ -246,7 +246,7 @@ func (s *Softmax) Learn() error {
 				}
 			}
 
-			fmt.Printf("Went through %v iterations.\n", iter)
+			fmt.Printf("Went through %v iterations.\n", iter+1)
 
 			return nil
 		}()
@@ -258,7 +258,7 @@ func (s *Softmax) Learn() error {
 				s.maxIterations = 5000
 			}
 
-			iter := 1
+			iter := 0
 
 			// Stop iterating if the number of iterations exceeds
 			// the limit
@@ -284,7 +284,7 @@ func (s *Softmax) Learn() error {
 				}
 			}
 
-			fmt.Printf("Went through %v iterations.\n", iter)
+			fmt.Printf("Went through %v iterations.\n", iter+1)
 
 			return nil
 		}()
@@ -497,6 +497,7 @@ func (s *Softmax) OnlineLearn(errors chan error, dataset chan base.Datapoint, on
 					newθ := theta[j] + s.alpha*dj[j]
 					if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
 						errors <- fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
+						close(errors)
 						return
 					}
 					s.Parameters[k][j] = newθ
@@ -522,7 +523,7 @@ func (s *Softmax) String() string {
 	}
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("h(θ,x)[i] = exp(θ[i]x) / Σ exp(θ[j]x)\nθ = %v\n", s.Parameters))
+	buffer.WriteString(fmt.Sprintf("h(θ,x)[i] = exp(θ[i]x) / Σ exp(θ[j]x)\n\tθ ∊ ℝ^(%v x %v)\n", len(s.Parameters), len(s.Parameters[0])))
 
 	return buffer.String()
 }
