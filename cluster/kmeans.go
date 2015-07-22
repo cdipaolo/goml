@@ -109,6 +109,10 @@ type KMeans struct {
 	// non-online setting.
 	maxIterations int
 
+	// alpha is only used in the
+	// online setting of the algorithm
+	alpha float64
+
 	// trainingSet and guesses are the
 	// 'x', and 'y' of the data, expressed as
 	// vectors, that the model can optimize from.
@@ -128,6 +132,15 @@ type KMeans struct {
 	Centroids [][]float64 `json:"centroids"`
 }
 
+// OnlineParams is used to pass optional
+// parameters in to creating a new K-Means
+// model if you want to learn using the
+// online version of the model
+type OnlineParams struct {
+	alpha    float64
+	features int
+}
+
 // NewKMeans returns a pointer to the k-means
 // model, which clusters given inputs in an
 // unsupervised manner. The algorithm only has
@@ -135,10 +148,20 @@ type KMeans struct {
 // the online variant which is more of a generalization
 // than the same algorithm) so you aren't allowed
 // to pass one in as an option.
-func NewKMeans(k, maxIterations int, trainingSet [][]float64) *KMeans {
+//
+// n is an optional parameter which (if given) assigns
+// the length of the input vector.
+func NewKMeans(k, maxIterations int, trainingSet [][]float64, params ...OnlineParams) *KMeans {
 	var features int
-	if len(trainingSet) != 0 {
+	if len(params) != 0 {
+		features = params[0].features
+	} else if len(trainingSet) != 0 {
 		features = len(trainingSet[0])
+	}
+
+	var alpha float64 = 0.5
+	if len(params) != 0 {
+		alpha = params[0].alpha
 	}
 
 	// start all guesses with the zero vector.
@@ -157,6 +180,8 @@ func NewKMeans(k, maxIterations int, trainingSet [][]float64) *KMeans {
 
 	return &KMeans{
 		maxIterations: maxIterations,
+
+		alpha: alpha,
 
 		trainingSet: trainingSet,
 		guesses:     guesses,
@@ -177,6 +202,19 @@ func (k *KMeans) UpdateTrainingSet(trainingSet [][]float64) error {
 	k.guesses = make([]int, len(trainingSet))
 
 	return nil
+}
+
+// UpdateLearningRate set's the learning rate of the model
+// to the given float64.
+func (k *KMeans) UpdateLearningRate(a float64) {
+	k.alpha = a
+}
+
+// LearningRate returns the learning rate α for gradient
+// descent to optimize the model. Could vary as a function
+// of something else later, potentially.
+func (k *KMeans) LearningRate() float64 {
+	return k.alpha
 }
 
 // Examples returns the number of training examples (m)
@@ -251,8 +289,8 @@ func (k *KMeans) Learn() error {
 		//
 		// store counts when assigning classes
 		// so you won't have to sum them again later
-		classTotal := make(map[int][]float64)
-		classCount := make(map[int]int64)
+		classTotal := make([][]float64, centroids)
+		classCount := make([]int64, centroids)
 
 		for j := range k.Centroids {
 			classTotal[j] = make([]float64, features)
@@ -299,11 +337,171 @@ func (k *KMeans) Learn() error {
 
 	fmt.Printf("Training Completed in %v iterations.\n%v\n", iter, k)
 
-	if len(k.Centroids) != centroids {
-		fmt.Printf("Now have %v classes (had %v before) because one/some held no examples\n", len(k.Centroids), centroids)
+	return nil
+}
+
+/*
+OnlineLearn implements a variant of the K-Means
+learning algorithm to work with streams of data.
+The basis of the model is discusses within this
+(http://ocw.mit.edu/courses/sloan-school-of-management/15-097-prediction-machine-learning-and-statistics-spring-2012/projects/MIT15_097S12_proj1.pdf)
+paper by an MIT student, along with some theoretical
+assurances of the quality of learning.
+
+The onUpdate callback will be called in a separate
+goroutine whenever the model updates a centroid
+of the cluster. The callback will pass two items
+within the array: an array containing the class
+number (only) of the cluster updated, and the new
+centroid vector for that class
+
+Ex: [[2.0], [1.23, 4.271, 6.013, 7.20312]]
+
+The algorithm performs the following update:
+    0. Get new point x
+    1. Determine the closest cluster μ[i] to point x
+    2. Update the cluster center: μ[i] := μ[i] + α(x - μ[i])
+
+NOTE that this is an unsupervised model! You
+DO NOT need to pass in the Y param of the
+datapoints!
+
+Example Online K-Means Model:
+    model := NewKMeans(4, 0, nil, OnlineParams{
+        alpha:    0.5,
+        features: 4,
+    })
+
+    go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
+
+    go func() {
+        // start passing data to our datastream
+        //
+        // we could have data already in our channel
+        // when we instantiated the model, though
+        for i := -40.0; i < -30; i += 4.99 {
+            for j := -40.0; j < -30; j += 4.99 {
+                for k := -40.0; k < -30; k += 4.99 {
+                    for l := -40.0; l < -30; l += 4.99 {
+                        stream <- base.Datapoint{
+                            X: []float64{i, j, k, l},
+                        }
+                    }
+                }
+            }
+        }
+        for i := -40.0; i < -30; i += 4.99 {
+            for j := 30.0; j < 40; j += 4.99 {
+                for k := -40.0; k < -30; k += 4.99 {
+                    for l := 30.0; l < 40; l += 4.99 {
+                        stream <- base.Datapoint{
+                            X: []float64{i, j, k, l},
+                        }
+                    }
+                }
+            }
+        }
+        for i := 30.0; i < 40; i += 4.99 {
+            for j := -40.0; j < -30; j += 4.99 {
+                for k := 30.0; k < 40; k += 4.99 {
+                    for l := -40.0; l < -30; l += 4.99 {
+                        stream <- base.Datapoint{
+                            X: []float64{i, j, k, l},
+                        }
+                    }
+                }
+            }
+        }
+        for i := 30.0; i < 40; i += 4.99 {
+            for j := -40.0; j < -30; j += 4.99 {
+                for k := -40.0; k < -30; k += 4.99 {
+                    for l := 30.0; l < 40; l += 4.99 {
+                        stream <- base.Datapoint{
+                            X: []float64{i, j, k, l},
+                        }
+                    }
+                }
+            }
+        }
+
+        // close the dataset
+        close(stream)
+    }()
+
+    // this will block until the error
+    // channel is closed in the learning
+    // function (it will, don't worry!)
+    for {
+        err, more := <-errors
+        if err != nil {
+            panic("THERE WAS AN ERROR!!! RUN!!!!")
+          }
+        if !more {
+            break
+        }
+    }
+
+    // Below here all the learning is completed
+
+    // predict like usual
+    guess, err = model.Predict([]float64{42,6,10,-32})
+    if err != nil {
+        panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
+    }
+*/
+func (k *KMeans) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
+	if dataset == nil {
+		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
+		fmt.Printf(err.Error())
+		errors <- err
+		close(errors)
+		return
 	}
 
-	return nil
+	if errors == nil {
+		errors = make(chan error)
+	}
+
+	centroids := len(k.Centroids)
+	features := len(k.Centroids[0])
+
+	fmt.Printf("Training:\n\tModel: Online K-Means Classification\n\tFeatures: %v\n\tClasses: %v\n...\n\n", features, centroids)
+
+	var point base.Datapoint
+	var more bool
+
+	oneMinusAlpha := 1.0 - k.alpha
+
+	for {
+		point, more = <-dataset
+
+		if more {
+			if len(point.X) != features {
+				errors <- fmt.Errorf("ERROR: point.X must have the same dimensions as clusters (len %v). Point: %v", point)
+			}
+
+			minDiff := diff(point.X, k.Centroids[0])
+			c := 0
+			for j := 1; j < len(k.Centroids); j++ {
+				difference := diff(point.X, k.Centroids[j])
+				if difference < minDiff {
+					minDiff = difference
+					c = j
+				}
+			}
+
+			for i := range k.Centroids[c] {
+				k.Centroids[c][i] = k.alpha*point.X[i] + oneMinusAlpha*k.Centroids[c][i]
+			}
+
+			go onUpdate([][]float64{[]float64{float64(c)}, k.Centroids[c]})
+
+		} else {
+			fmt.Printf("Training Completed.\n%v\n\n", k)
+			close(errors)
+			return
+		}
+	}
 }
 
 // String implements the fmt interface for clean printing. Here

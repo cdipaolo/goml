@@ -8,6 +8,8 @@ This part of the `goml` package implements clustering algorithms, unsupervised _
 ### implemented models
 
 - [k-means clustering](kmeans.go)
+	* Both online and batch versions of the algorithm
+	* Online version implements the algorithm discussed in [this paper](http://ocw.mit.edu/courses/sloan-school-of-management/15-097-prediction-machine-learning-and-statistics-spring-2012/projects/MIT15_097S12_proj1.pdf)
 
 ### example k-means model usage
 

@@ -29,16 +29,17 @@ Sub-bullets below will take you directly to the source code of the model.
 
 ## Currently Implemented Models
 
-- [Generalized Linear Models](linear/)
+- [Generalized Linear Models](linear/) (all have stochastic GA, batch GA, and online options)
   * [Ordinary Least Squares](linear/linear.go)
   * [Locally Weighted Linear Regression](linear/local_linear.go)
   * [Logistic Regression](linear/logistic.go)
   * [Softmax (Multiclass Logistic) Regression](linear/softmax.go)
-- [Perceptron](perceptron/)
+- [Perceptron](perceptron/) only in online options
   * [Online, Binary Perceptron](perceptron/perceptron.go)
   * [Online, Binary Kernel Perceptron](perceptron/kernel_perceptron.go)
 - [Clustering](cluster/)
   * [K-Means Clustering](cluster/kmeans.go)
+  	* Both online and batch versions
 
 ## Contributing!
 

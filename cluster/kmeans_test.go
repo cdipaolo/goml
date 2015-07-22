@@ -257,6 +257,163 @@ func TestKMeansShouldPass3(t *testing.T) {
 	fmt.Printf("Accuracy: %v percent\n\tPoints Tested: %v\n\tMisclassifications: %v\n\tClasses: %v\n", accuracy, count, wrong, []float64{c1[0], c2[0]})
 }
 
+//* Test Online KMeans *//
+
+func TestOnlineKMeansShouldPass1(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.Datapoint, 100)
+	errors := make(chan error, 20)
+
+	model := NewKMeans(4, 0, nil, OnlineParams{
+		alpha:    0.5,
+		features: 4,
+	})
+
+	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
+
+	go func() {
+		// start passing data to our datastream
+		//
+		// we could have data already in our channel
+		// when we instantiated the model, though
+		for i := -40.0; i < -30; i += 4.99 {
+			for j := -40.0; j < -30; j += 4.99 {
+				for k := -40.0; k < -30; k += 4.99 {
+					for l := -40.0; l < -30; l += 4.99 {
+						stream <- base.Datapoint{
+							X: []float64{i, j, k, l},
+						}
+					}
+				}
+			}
+		}
+		for i := -40.0; i < -30; i += 4.99 {
+			for j := 30.0; j < 40; j += 4.99 {
+				for k := -40.0; k < -30; k += 4.99 {
+					for l := 30.0; l < 40; l += 4.99 {
+						stream <- base.Datapoint{
+							X: []float64{i, j, k, l},
+						}
+					}
+				}
+			}
+		}
+		for i := 30.0; i < 40; i += 4.99 {
+			for j := -40.0; j < -30; j += 4.99 {
+				for k := 30.0; k < 40; k += 4.99 {
+					for l := -40.0; l < -30; l += 4.99 {
+						stream <- base.Datapoint{
+							X: []float64{i, j, k, l},
+						}
+					}
+				}
+			}
+		}
+		for i := 30.0; i < 40; i += 4.99 {
+			for j := -40.0; j < -30; j += 4.99 {
+				for k := -40.0; k < -30; k += 4.99 {
+					for l := 30.0; l < 40; l += 4.99 {
+						stream <- base.Datapoint{
+							X: []float64{i, j, k, l},
+						}
+					}
+				}
+			}
+		}
+
+		// close the dataset
+		close(stream)
+	}()
+
+	err, more := <-errors
+
+	assert.Nil(t, err, "Learning error should be nil")
+	assert.False(t, more, "There should be no errors returned")
+
+	c1, err := model.Predict([]float64{-35, -35, -35, -35})
+	assert.Nil(t, err, "Prediction error should be nil")
+
+	c2, err := model.Predict([]float64{-35, 35, -35, 35})
+	assert.Nil(t, err, "Prediction error should be nil")
+
+	c3, err := model.Predict([]float64{35, -35, 35, -35})
+	assert.Nil(t, err, "Prediction error should be nil")
+
+	c4, err := model.Predict([]float64{35, -35, -35, 35})
+	assert.Nil(t, err, "Prediction error should be nil")
+
+	var count int
+	var wrong int
+
+	// test a larger dataset now
+	for i := -40.0; i < -30; i += 1.99 {
+		for j := -40.0; j < -30; j += 1.99 {
+			for k := -40.0; k < -30; k += 1.99 {
+				for l := -40.0; l < -30; l += 1.99 {
+					guess, err := model.Predict([]float64{i, j, k, l})
+					assert.Nil(t, err, "Prediction error should be nil")
+
+					if guess[0] != c1[0] {
+						wrong++
+					}
+					count++
+				}
+			}
+		}
+	}
+	for i := -40.0; i < -30; i += 1.99 {
+		for j := 30.0; j < 40; j += 1.99 {
+			for k := -40.0; k < -30; k += 1.99 {
+				for l := 30.0; l < 40; l += 1.99 {
+					guess, err := model.Predict([]float64{i, j, k, l})
+					assert.Nil(t, err, "Prediction error should be nil")
+
+					if guess[0] != c2[0] {
+						wrong++
+					}
+					count++
+				}
+			}
+		}
+	}
+	for i := 30.0; i < 40; i += 1.99 {
+		for j := -40.0; j < -30; j += 1.99 {
+			for k := 30.0; k < 40; k += 1.99 {
+				for l := -40.0; l < -30; l += 1.99 {
+					guess, err := model.Predict([]float64{i, j, k, l})
+					assert.Nil(t, err, "Prediction error should be nil")
+
+					if guess[0] != c3[0] {
+						wrong++
+					}
+					count++
+				}
+			}
+		}
+	}
+	for i := 30.0; i < 40; i += 1.99 {
+		for j := -40.0; j < -30; j += 1.99 {
+			for k := -40.0; k < -30; k += 1.99 {
+				for l := 30.0; l < 40; l += 1.99 {
+					guess, err := model.Predict([]float64{i, j, k, l})
+					assert.Nil(t, err, "Prediction error should be nil")
+
+					if guess[0] != c4[0] {
+						wrong++
+					}
+					count++
+				}
+			}
+		}
+	}
+
+	accuracy := 100 * (1 - float64(wrong)/float64(count))
+	assert.True(t, accuracy > 95, "Accuracy (%v) should be greater than 95 percent", accuracy)
+	fmt.Printf("Accuracy: %v percent\n\tPoints Tested: %v\n\tMisclassifications: %v\n\tClasses: %v\n", accuracy, count, wrong, []float64{c1[0], c2[0], c3[0], c4[0]})
+}
+
+//* Test Persistance *//
+
 func TestKMeansPersistToFileShouldPass1(t *testing.T) {
 	var wrong int
 	var count int
