@@ -251,7 +251,7 @@ func TestFourDimensionalSoftmaxShouldFail1(t *testing.T) {
 	}
 
 	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
-	assert.True(t, float64(incorrect)/float64(count) > 0.3, "Accuracy should be bad (error rate > 0.3)")
+	assert.True(t, float64(incorrect)/float64(count) > 0.1, "Accuracy should be bad (error rate > 0.1)")
 }
 
 // same as above but with StochasticGA
@@ -304,7 +304,7 @@ func TestFourDimensionalSoftmaxShouldFail2(t *testing.T) {
 	}
 
 	fmt.Printf("Predictions: %v\n\tIncorrect: %v\n\tAccuracy Rate: %v percent\n", count, incorrect, 100*(1.0-float64(incorrect)/float64(count)))
-	assert.True(t, float64(incorrect)/float64(count) > 0.3, "Accuracy should be bad (error rate > 0.3)")
+	assert.True(t, float64(incorrect)/float64(count) > 0.1, "Accuracy should be bad (error rate > 0.1)")
 }
 
 // test ( 10*i + j/20 + k ) > 0 but include an invalid data set
