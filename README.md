@@ -29,7 +29,7 @@ Sub-bullets below will take you directly to the source code of the model.
 
 ## Currently Implemented Models
 
-- [Generalized Linear Models](linear/) (all have stochastic GA, batch GA, and online options)
+- [Generalized Linear Models](linear/) (all have stochastic GA, batch GA, and online options except for locally weighted linear regression)
   * [Ordinary Least Squares](linear/linear.go)
   * [Locally Weighted Linear Regression](linear/local_linear.go)
   * [Logistic Regression](linear/logistic.go)
