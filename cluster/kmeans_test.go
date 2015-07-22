@@ -527,7 +527,7 @@ func TestKMeansPersistToFileShouldPass1(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, 100*(1-float64(wrong)/float64(count)), accuracy, "Accuracy Should be Equal")
+	assert.InDelta(t, 100*(1-float64(wrong)/float64(count)), accuracy, 1, "Accuracy Should be Equal")
 
 	// save results to disk
 	assert.Nil(t, model.SaveClusteredData("/tmp/.goml/KMeansResults.csv"), "Save results error should be nil")
