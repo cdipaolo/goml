@@ -496,7 +496,7 @@ func TestKMeansPersistToFileShouldPass1(t *testing.T) {
 			count++
 		}
 	}
-	assert.NotEqual(t, 100*(1-float64(wrong)/float64(count)), accuracy, "Reset accuracy should not be equal to trained accuracy")
+	assert.True(t, 100*(1-float64(wrong)/float64(count)) <= accuracy, "Reset accuracy should not be greater than the trained accuracy")
 
 	// restore from file!
 	assert.Nil(t, model.RestoreFromFile("/tmp/.goml/KMeans.csv"), "Restore error should be nil")
