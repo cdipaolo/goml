@@ -178,10 +178,8 @@ func (s *Softmax) Predict(x []float64, normalize ...bool) ([]float64, error) {
 		denom += result[i]
 	}
 
-	var sum float64
-	for i := 0; i < len(result); i++ {
+	for i := range result {
 		result[i] /= denom
-		sum += result[i]
 	}
 
 	return result, nil
@@ -228,25 +226,27 @@ func (s *Softmax) Learn() error {
 
 				// go over each parameter vector for each
 				// classification value
+				newTheta := make([][]float64, len(s.Parameters))
 				for k, theta := range s.Parameters {
+					newTheta[k] = make([]float64, len(theta))
+
 					dj, err := s.Dj(k)
 					if err != nil {
 						return err
 					}
 
-					// now simultaneously update theta
 					for j := range theta {
-						newθ := theta[j] + s.alpha*dj[j]
-						if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
+						newTheta[k][j] = theta[j] + s.alpha*dj[j]
+						if math.IsInf(newTheta[k][j], 0) || math.IsNaN(newTheta[k][j]) {
 							return fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
 						}
-
-						s.Parameters[k][j] = newθ
 					}
 				}
+
+				s.Parameters = newTheta
 			}
 
-			fmt.Printf("Went through %v iterations.\n", iter+1)
+			fmt.Printf("Went through %v iterations.\n", iter)
 
 			return nil
 		}()
@@ -264,9 +264,11 @@ func (s *Softmax) Learn() error {
 			// the limit
 			for ; iter < s.maxIterations; iter++ {
 				for j := range s.trainingSet {
+					newTheta := make([][]float64, len(s.Parameters))
 					// go over each parameter vector for each
 					// classification value
 					for k, theta := range s.Parameters {
+						newTheta[k] = make([]float64, len(theta))
 						dj, err := s.Dij(j, k)
 						if err != nil {
 							return err
@@ -274,17 +276,18 @@ func (s *Softmax) Learn() error {
 
 						// now simultaneously update theta
 						for j := range theta {
-							newθ := theta[j] + s.alpha*dj[j]
-							if math.IsInf(newθ, 0) || math.IsNaN(newθ) {
+							newTheta[k][j] = theta[j] + s.alpha*dj[j]
+							if math.IsInf(newTheta[k][j], 0) || math.IsNaN(newTheta[k][j]) {
 								return fmt.Errorf("Sorry dude! Learning diverged. Some value of the parameter vector theta is ±Inf or NaN")
 							}
-							s.Parameters[k][j] = newθ
 						}
 					}
+
+					s.Parameters = newTheta
 				}
 			}
 
-			fmt.Printf("Went through %v iterations.\n", iter+1)
+			fmt.Printf("Went through %v iterations.\n", iter)
 
 			return nil
 		}()
@@ -549,7 +552,7 @@ func (s *Softmax) Dj(k int) ([]float64, error) {
 
 		var ident float64
 		// 1{y == k}
-		if abs(s.expectedResults[i]-float64(k)) < 1e-3 {
+		if int(s.expectedResults[i]) == k {
 			ident = 1
 		}
 
@@ -571,8 +574,9 @@ func (s *Softmax) Dj(k int) ([]float64, error) {
 
 		}
 
+		c := ident - numerator/denom
 		for a := range sum {
-			sum[a] += x[a] * (ident - numerator/denom)
+			sum[a] += x[a] * c
 		}
 	}
 

@@ -159,7 +159,7 @@ func NewKMeans(k, maxIterations int, trainingSet [][]float64, params ...OnlinePa
 		features = len(trainingSet[0])
 	}
 
-	var alpha float64 = 0.5
+	alpha := 0.5
 	if len(params) != 0 {
 		alpha = params[0].alpha
 	}
