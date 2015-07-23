@@ -40,6 +40,8 @@ Sub-bullets below will take you directly to the source code of the model.
 - [Clustering](cluster/)
   * [K-Means Clustering](cluster/kmeans.go)
   	* Both online and batch versions
+  * [K-Nearest-Neighbors Clustering](cluster/knn.go)
+  	* Can use any distance metric, with L-p Norm, Euclidean Distance, and Manhattan Distance pre-defined within the `goml/base` package
 
 ## Contributing!
 

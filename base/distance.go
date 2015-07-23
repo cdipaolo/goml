@@ -45,7 +45,7 @@ func EuclideanDistance(u []float64, v []float64) float64 {
 func ManhattanDistance(u []float64, v []float64) float64 {
 	var sum float64
 	for i := range u {
-		sum += u[i] - v[i]
+		sum += math.Abs(u[i] - v[i])
 	}
 	return sum
 }

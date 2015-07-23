@@ -10,6 +10,8 @@ This part of the `goml` package implements clustering algorithms, unsupervised _
 - [k-means clustering](kmeans.go)
 	* Both online and batch versions of the algorithm
 	* Online version implements the algorithm discussed in [this paper](http://ocw.mit.edu/courses/sloan-school-of-management/15-097-prediction-machine-learning-and-statistics-spring-2012/projects/MIT15_097S12_proj1.pdf)
+- [n-nearest-neighbors clustering](knn.go)
+	* Can use any distance metric, with L-p Norm, Euclidean Distance, and Manhattan Distance pre-defined within the `goml/base` package
 
 ### example k-means model usage
 

@@ -8,14 +8,49 @@ import (
 	"github.com/cdipaolo/goml/base"
 )
 
-// KNN implements the KNN algorithm
-// for classification, where an input
-// is classified by finding the K
-// nearest (by some distance metric)
-// data points, and taking a vote
-// based on those.
-//
-// https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm
+/*
+KNN implements the KNN algorithm
+for classification, where an input
+is classified by finding the K
+nearest (by some distance metric)
+data points, and taking a vote
+based on those.
+
+https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm
+
+Example K-Nearest-Neighbors Model Usage:
+
+	// initialize data!
+	twoClusters := [][]float64{}
+	twoClustersY := []float64{}
+	for i := -10.0; i < -3; i += 0.1 {
+		for j := -10.0; j < 10; j += 0.1 {
+			twoClusters = append(twoClusters, []float64{i, j})
+			twoClustersY = append(twoClustersY, 0.0)
+		}
+	}
+
+	for i := 3.0; i < 10; i += 0.1 {
+		for j := -10.0; j < 10; j += 0.1 {
+			twoClusters = append(twoClusters, []float64{i, j})
+			twoClustersY = append(twoClustersY, 1.0)
+		}
+	}
+
+	// create the model using 3 nearest neighbors
+	// for prediction, using the Euclidean Distance
+	// as the distance metric.
+	model := NewKNN(3, twoClusters, twoClustersY, base.EuclideanDistance)
+
+	// make predictions like usual
+	guess, err := model.Predict([]float64{-10,1})
+	if err != nil {
+		panic("THERE WAS AN ERROR")
+	}
+
+	// update the K used (use 10 neighbors now)
+	model.K = 10
+*/
 type KNN struct {
 	// Distance holds the distance
 	// measure for the KNN algorithm,
