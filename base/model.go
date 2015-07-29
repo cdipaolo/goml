@@ -33,7 +33,6 @@ type Model interface {
 	// vector unit length. Use (and only use) this
 	// if you trained on normalized inputs.
 	Predict([]float64, ...bool) ([]float64, error)
-	Learn() error
 
 	// PersistToFile and RestoreFromFile both take
 	// in paths (absolute paths!) to files and
