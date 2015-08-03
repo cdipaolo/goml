@@ -360,9 +360,7 @@ func (l *LeastSquares) Learn() error {
 //     }
 func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
 	if dataset == nil {
-		err := fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
-		fmt.Printf(err.Error())
-		errors <- err
+		errors <- fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		close(errors)
 		return
 	}
