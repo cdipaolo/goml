@@ -9,7 +9,7 @@ models might represent the words as
 these vectors, the munging of a
 document is hidden from the user.
 
-The simplese model, although suprisingly
+The simplest model, although suprisingly
 effective, is Naive Bayes. If you
 want to read more about the specific
 model, check out the docs for the
@@ -32,18 +32,18 @@ Example Online Naive Bayes Text Classifier (multiclass):
 	go model.OnlineLearn(errors)
 
 	stream <- base.TextDatapoint{
-		X: "I love the city"
-		Y: 1
+		X: "I love the city",
+		Y: 1,
 	}
 
 	stream <- base.TextDatapoint{
-		X: "I hate Los Angeles"
-		Y: 0
+		X: "I hate Los Angeles",
+		Y: 0,
 	}
 
 	stream <- base.TextDatapoint{
-		X: "My mother is not a nice lady"
-		Y: 0
+		X: "My mother is not a nice lady",
+		Y: 0,
 	}
 
 	close(stream)
@@ -70,6 +70,10 @@ import (
 	"math"
 	"os"
 	"strings"
+
+	"golang.org/x/text/transform"
+
+	"github.com/cdipaolo/goml/base"
 )
 
 /*
@@ -131,12 +135,16 @@ type NaiveBayes struct {
 	// documents that have been seen
 	DocumentCount uint64 `json:"document_count"`
 
+	// DictCount holds the size of the
+	// NaiveBayes model's vocabulary
+	DictCount uint64 `json:"vocabulary_size"`
+
 	// sanitize is used by a model
 	// to sanitize input of text
-	sanitize func(r rune) bool
+	sanitize transform.Transformer
 
 	// stream holds the datastream
-	stream chan base.TextDatapoint
+	stream <-chan base.TextDatapoint
 }
 
 // Word holds the structural
@@ -157,11 +165,6 @@ type Word struct {
 	// recalc the probabilities (foldl
 	// is the same as reduce, basically.)
 	Seen uint64
-
-	// Probabilities holds the probability
-	// that word x is of class i as
-	// Probabilities[i]
-	Probabilities []float64
 }
 
 // NewNaiveBayes returns a NaiveBayes model the
@@ -169,14 +172,13 @@ type Word struct {
 // to learn off the given data stream. The sanitization
 // function is set to the given function. It must
 // comply with the transform.RemoveFunc interface
-func NewNaiveBayes(stream chan<- base.TextDatapoint, classes uint8, sanitize func(rune) bool) *NaiveBayes {
+func NewNaiveBayes(stream <-chan base.TextDatapoint, classes uint8, sanitize func(rune) bool) *NaiveBayes {
 	return &NaiveBayes{
 		Words:         make(map[string]Word),
 		Count:         make([]uint64, classes),
 		Probabilities: make([]float64, classes),
-		DocumentCount:      uint64(0),
 
-		sanitize: sanitize,
+		sanitize: transform.RemoveFunc(sanitize),
 		stream:   stream,
 	}
 }
@@ -188,14 +190,15 @@ func NewNaiveBayes(stream chan<- base.TextDatapoint, classes uint8, sanitize fun
 func (b *NaiveBayes) Predict(sentence string) uint8 {
 	sums := make([]float64, len(b.Count))
 
-	w := strings.Split(sentence, " ")
+	sentence, _, _ = transform.String(b.sanitize, sentence)
+	w := strings.Split(strings.ToLower(sentence), " ")
 	for _, word := range w {
-		if _, ok := b.Words[word]; !ok {
+		if _, ok := b.Words[word]; len(word) < 3 || !ok {
 			continue
 		}
 
 		for i := range sums {
-			sums[i] += math.Log(b.Words[word].Probabilities[i])
+			sums[i] += math.Log(float64(b.Words[word].Count[i]+1) / float64(b.Words[word].Seen+b.DictCount))
 		}
 	}
 
@@ -217,7 +220,7 @@ func (b *NaiveBayes) Predict(sentence string) uint8 {
 // OnlineLearn lets the NaiveBayes model learn
 // from the datastream, waiting for new data to
 // come into the stream from a separate goroutine
-func (b *NaiveBayes) OnlineLearn(errors chan-> error) {
+func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 	if errors == nil {
 		errors = make(chan error)
 	}
@@ -233,7 +236,7 @@ func (b *NaiveBayes) OnlineLearn(errors chan-> error) {
 	var more bool
 
 	for {
-		point, more = <-dataset
+		point, more = <-b.stream
 
 		if more {
 			// sanitize and break up document
@@ -242,10 +245,10 @@ func (b *NaiveBayes) OnlineLearn(errors chan-> error) {
 
 			words := strings.Split(sanitized, " ")
 
-			C := int(point.Y)-1
+			C := int(point.Y)
 
 			if C > len(b.Count)-1 {
-				errors <- fmt.Errorf("ERROR: given document class is greater than the number of classes in the model!")
+				errors <- fmt.Errorf("ERROR: given document class is greater than the number of classes in the model!\n")
 				continue
 			}
 
@@ -253,29 +256,28 @@ func (b *NaiveBayes) OnlineLearn(errors chan-> error) {
 			b.Count[C]++
 			b.DocumentCount++
 			for i := range b.Probabilities {
-				b.Probabilities  = b.Count[i] / b.DocumentCount
+				b.Probabilities[i] = float64(b.Count[i]) / float64(b.DocumentCount)
 			}
 
 			// update probabilities for words
 			for _, word := range words {
+				if len(word) < 3 {
+					continue
+				}
+
 				w, ok := b.Words[word]
 
 				if !ok {
 					w = Word{
-						Count: make([]float64, len(b.Count)),
-						Seen: uint8(0),
-						Probabilities: make([]float64, len(b.Count)),
+						Count: make([]uint64, len(b.Count)),
+						Seen:  uint64(0),
 					}
 
-					for i := range w.Probabilities {
-						w.Probabilities[C] = 1 / (1 + w.DocumentCount)
-					}
+					b.DictCount++
 				}
 
 				w.Count[C]++
 				w.Seen++
-
-				w.Probabilities[C] = float64(w.Count[C] + uint8(1)) / float64(w.Seen + w.DocumentCount)
 
 				b.Words[word] = w
 			}
@@ -296,14 +298,14 @@ func (b *NaiveBayes) UpdateStream(stream chan base.TextDatapoint) {
 // UpdateSanitize updates the NaiveBayes model's
 // text sanitization transformation function
 func (b *NaiveBayes) UpdateSanitize(sanitize func(rune) bool) {
-	b.sanitize = sanitize
+	b.sanitize = transform.RemoveFunc(sanitize)
 }
 
 // String implements the fmt interface for clean printing. Here
 // we're using it to print the model as the equation h(θ)=...
 // where h is the perceptron hypothesis model.
 func (b *NaiveBayes) String() string {
-	return fmt.Sprintf("h(θ) = argmax_c{log(P(y = c)) + ΣP(x|y = c)}\n\tClasses: %v\n\tWords evaluated in model: %v\n", len(b.Classes), int(b.DocumentCount))
+	return fmt.Sprintf("h(θ) = argmax_c{log(P(y = c)) + ΣP(x|y = c)}\n\tClasses: %v\n\tWords evaluated in model: %v\n", len(b.Count), int(b.DocumentCount))
 }
 
 // PersistToFile takes in an absolute filepath and saves the

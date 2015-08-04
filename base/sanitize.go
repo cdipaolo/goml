@@ -1,13 +1,9 @@
 package base
 
-import (
-	"golang.org/x/text/transform"
-)
-
 // OnlyWordsAndNumbers is a transform
 // function that will only let 0-1a-zA-Z,
 // and spaces though
-var OnlyWordsAndNumbers = transform.RemoveFunc(func(r rune) bool {
+func OnlyWordsAndNumbers(r rune) bool {
 	switch {
 	case r >= 'A' && r <= 'Z':
 		return false
@@ -20,12 +16,12 @@ var OnlyWordsAndNumbers = transform.RemoveFunc(func(r rune) bool {
 	default:
 		return true
 	}
-})
+}
 
 // OnlyWords is a transform function
 // that will only let a-zA-Z, and
 // spaces though
-var OnlyWords = transform.RemoveFunc(func(r rune) bool {
+func OnlyWords(r rune) bool {
 	switch {
 	case r >= 'A' && r <= 'Z':
 		return false
@@ -36,11 +32,11 @@ var OnlyWords = transform.RemoveFunc(func(r rune) bool {
 	default:
 		return true
 	}
-})
+}
 
 // OnlyLetters is a transform function
 // that will only let a-zA-Z through
-var OnlyLetters = transform.RemoveFunc(func(r rune) bool {
+func OnlyLetters(r rune) bool {
 	switch {
 	case r >= 'A' && r <= 'Z':
 		return false
@@ -49,4 +45,4 @@ var OnlyLetters = transform.RemoveFunc(func(r rune) bool {
 	default:
 		return true
 	}
-})
+}
