@@ -413,14 +413,13 @@ func (s *Softmax) Learn() error {
 //         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
 //     }
 func (s *Softmax) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
+	if errors == nil {
+		errors = make(chan error)
+	}
 	if dataset == nil {
 		errors <- fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		close(errors)
 		return
-	}
-
-	if errors == nil {
-		errors = make(chan error)
 	}
 
 	fmt.Printf("Training:\n\tModel: Softmax Classifier (%v classes)\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", s.k, len(s.Parameters), s.alpha)

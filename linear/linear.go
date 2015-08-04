@@ -359,14 +359,13 @@ func (l *LeastSquares) Learn() error {
 //         panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
 //     }
 func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
+	if errors == nil {
+		errors = make(chan error)
+	}
 	if dataset == nil {
 		errors <- fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		close(errors)
 		return
-	}
-
-	if errors == nil {
-		errors = make(chan error)
 	}
 
 	fmt.Printf("Training:\n\tModel: Ordinary Least Squares Regression\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)

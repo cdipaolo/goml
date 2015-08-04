@@ -303,14 +303,13 @@ func (p *Perceptron) Predict(x []float64, normalize ...bool) ([]float64, error) 
 //           panic("EGATZ!! I FOUND AN ERROR! BETTER CHECK YOUR INPUT DIMENSIONS!")
 //      }
 func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
+	if errors == nil {
+		errors = make(chan error)
+	}
 	if dataset == nil {
 		errors <- fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		close(errors)
 		return
-	}
-
-	if errors == nil {
-		errors = make(chan error)
 	}
 
 	fmt.Printf("Training:\n\tModel: Perceptron Classifier\n\tOptimization Method: Online Perceptron\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(p.Parameters), p.alpha)

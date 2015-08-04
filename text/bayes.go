@@ -67,7 +67,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
+	"strings"
 )
 
 /*
@@ -125,10 +127,9 @@ type NaiveBayes struct {
 	// Probabilities[i] for
 	Probabilities []float64 `json:"probabilities"`
 
-	// DictSize holds the number of
-	// words being tracked in the
-	// dictionary
-	DictSize uint64 `json:"dict_size"`
+	// DocumentCount holds the number of
+	// documents that have been seen
+	DocumentCount uint64 `json:"document_count"`
 
 	// sanitize is used by a model
 	// to sanitize input of text
@@ -168,15 +169,121 @@ type Word struct {
 // to learn off the given data stream. The sanitization
 // function is set to the given function. It must
 // comply with the transform.RemoveFunc interface
-func NewNaiveBayes(stream base.TextDatapoint, classes uint8, sanitize func(rune) bool) *NaiveBayes {
+func NewNaiveBayes(stream chan<- base.TextDatapoint, classes uint8, sanitize func(rune) bool) *NaiveBayes {
 	return &NaiveBayes{
 		Words:         make(map[string]Word),
 		Count:         make([]uint64, classes),
 		Probabilities: make([]float64, classes),
-		DictSize:      uint64(0),
+		DocumentCount:      uint64(0),
 
 		sanitize: sanitize,
 		stream:   stream,
+	}
+}
+
+// Predict takes in a document, predicts the
+// class of the document based on the training
+// data passed so far, and returns the class
+// estimated for the document.
+func (b *NaiveBayes) Predict(sentence string) uint8 {
+	sums := make([]float64, len(b.Count))
+
+	w := strings.Split(sentence, " ")
+	for _, word := range w {
+		if _, ok := b.Words[word]; !ok {
+			continue
+		}
+
+		for i := range sums {
+			sums[i] += math.Log(b.Words[word].Probabilities[i])
+		}
+	}
+
+	for i := range sums {
+		sums[i] += math.Log(b.Probabilities[i])
+	}
+
+	// find best class
+	var maxI int
+	for i := range sums {
+		if sums[i] > sums[maxI] {
+			maxI = i
+		}
+	}
+
+	return uint8(maxI)
+}
+
+// OnlineLearn lets the NaiveBayes model learn
+// from the datastream, waiting for new data to
+// come into the stream from a separate goroutine
+func (b *NaiveBayes) OnlineLearn(errors chan-> error) {
+	if errors == nil {
+		errors = make(chan error)
+	}
+	if b.stream == nil {
+		errors <- fmt.Errorf("ERROR: attempting to learn with nil data stream!\n")
+		close(errors)
+		return
+	}
+
+	fmt.Printf("Training:\n\tModel: Multinomial Naïve Bayes\n\tClasses: %v", len(b.Count))
+
+	var point base.TextDatapoint
+	var more bool
+
+	for {
+		point, more = <-dataset
+
+		if more {
+			// sanitize and break up document
+			sanitized, _, _ := transform.String(b.sanitize, point.X)
+			sanitized = strings.ToLower(sanitized)
+
+			words := strings.Split(sanitized, " ")
+
+			C := int(point.Y)-1
+
+			if C > len(b.Count)-1 {
+				errors <- fmt.Errorf("ERROR: given document class is greater than the number of classes in the model!")
+				continue
+			}
+
+			// update global class probabilities
+			b.Count[C]++
+			b.DocumentCount++
+			for i := range b.Probabilities {
+				b.Probabilities  = b.Count[i] / b.DocumentCount
+			}
+
+			// update probabilities for words
+			for _, word := range words {
+				w, ok := b.Words[word]
+
+				if !ok {
+					w = Word{
+						Count: make([]float64, len(b.Count)),
+						Seen: uint8(0),
+						Probabilities: make([]float64, len(b.Count)),
+					}
+
+					for i := range w.Probabilities {
+						w.Probabilities[C] = 1 / (1 + w.DocumentCount)
+					}
+				}
+
+				w.Count[C]++
+				w.Seen++
+
+				w.Probabilities[C] = float64(w.Count[C] + uint8(1)) / float64(w.Seen + w.DocumentCount)
+
+				b.Words[word] = w
+			}
+		} else {
+			fmt.Printf("Training Completed.\n%v\n\n", b)
+			close(errors)
+			return
+		}
 	}
 }
 
@@ -196,7 +303,7 @@ func (b *NaiveBayes) UpdateSanitize(sanitize func(rune) bool) {
 // we're using it to print the model as the equation h(θ)=...
 // where h is the perceptron hypothesis model.
 func (b *NaiveBayes) String() string {
-	return fmt.Sprintf("h(θ) = argmax_c{log(P(y = c)) + ΣP(x|y = c)}\n\tClasses: %v\n\tWords evaluated in model: %v\n", len(b.Classes), int(b.DictSize))
+	return fmt.Sprintf("h(θ) = argmax_c{log(P(y = c)) + ΣP(x|y = c)}\n\tClasses: %v\n\tWords evaluated in model: %v\n", len(b.Classes), int(b.DocumentCount))
 }
 
 // PersistToFile takes in an absolute filepath and saves the

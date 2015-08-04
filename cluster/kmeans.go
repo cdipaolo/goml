@@ -450,14 +450,13 @@ Example Online K-Means Model:
     }
 */
 func (k *KMeans) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
+	if errors == nil {
+		errors = make(chan error)
+	}
 	if dataset == nil {
 		errors <- fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
 		close(errors)
 		return
-	}
-
-	if errors == nil {
-		errors = make(chan error)
 	}
 
 	centroids := len(k.Centroids)
