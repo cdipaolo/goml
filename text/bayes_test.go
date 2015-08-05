@@ -2,6 +2,7 @@ package text
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -187,6 +188,8 @@ func TestPersistPerceptronShouldPass1(t *testing.T) {
 	err := model.PersistToFile("/tmp/.goml/NaiveBayes.json")
 	assert.Nil(t, err, "Persistance error should be nil")
 
+	// reset model
+
 	model = NewNaiveBayes(stream, 3, base.OnlyWordsAndNumbers)
 
 	class = model.Predict("My mother is in Los Angeles") // 0
@@ -197,6 +200,22 @@ func TestPersistPerceptronShouldPass1(t *testing.T) {
 	assert.Nil(t, err, "Persistance error should be nil")
 
 	// now you can predict like normal
+	class = model.Predict("My mother is in Los Angeles") // 0
+	assert.EqualValues(t, 1, class, "Class should be 0")
+
+	// reset again
+
+	model = NewNaiveBayes(stream, 3, base.OnlyWordsAndNumbers)
+
+	class = model.Predict("My mother is in Los Angeles") // 0
+	assert.EqualValues(t, 0, class, "Class should be 0")
+
+	// restore file straight from bytes now
+	bytes, err := ioutil.ReadFile("/tmp/.goml/NaiveBayes.json")
+	assert.Nil(t, err, "Read file error should be nil")
+
+	assert.Nil(t, model.Restore(bytes), "Model restore error should be nil")
+
 	class = model.Predict("My mother is in Los Angeles") // 0
 	assert.EqualValues(t, 1, class, "Class should be 0")
 }

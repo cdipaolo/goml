@@ -334,6 +334,23 @@ func (b *NaiveBayes) PersistToFile(path string) error {
 	return nil
 }
 
+// Restore takes the bytes of a NaiveBayes model and
+// restores a model to it. This would be useful if
+// training a model and saving it into a project
+// using go-bindata (look it up) so you don't have
+// to persist a large file and deal with paths on
+// a production system. This option is included
+// in text models vs. others because the text models
+// usually have much larger storage requirements
+func (b *NaiveBayes) Restore(bytes []byte) error {
+	err := json.Unmarshal(bytes, &b)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // RestoreFromFile takes in a path to a parameter vector theta
 // and assigns the model it's operating on's parameter vector
 // to that.
