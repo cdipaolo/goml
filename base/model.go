@@ -99,7 +99,7 @@ type OnlineTextModel interface {
 	// an error in learning, though learning will
 	// just ignore the datapoint that caused the
 	// error and continue on.
-	OnlineLearn(chan error)
+	OnlineLearn(chan<- error)
 
 	// UpdateStream updates the datastream channel
 	// used in learning for the algorithm
