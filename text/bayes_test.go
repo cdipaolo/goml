@@ -63,7 +63,7 @@ func TestExampleClassificationShouldPass1(t *testing.T) {
 	}
 
 	// now you can predict like normal
-	class := model.Predict("My mother is in Los Angeles") // 0
+	class := model.Predict("My mo~~~ther is in Los Angeles") // 0
 	assert.EqualValues(t, 0, class, "Class should be 0")
 }
 

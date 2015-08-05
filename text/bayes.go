@@ -15,6 +15,9 @@ want to read more about the specific
 model, check out the docs for the
 NaiveBayes struct/model.
 
+The following example is an online Naive
+Bayes model used for sentiment analysis.
+
 Example Online Naive Bayes Text Classifier (multiclass):
 
 	// create the channel of data and errors
@@ -27,7 +30,12 @@ Example Online Naive Bayes Text Classifier (multiclass):
 	// in general, given n as the classes
 	// variable, the model will expect
 	// datapoint classes in {0,...,n-1})
-	model := NewNaiveBayes(stream, 2)
+	//
+	// Note that the model is filtering
+	// the text to omit anything except
+	// words and numbers (and spaces
+	// obviously)
+	model := NewNaiveBayes(stream, 2, base.OnlyWordsAndNumbers)
 
 	go model.OnlineLearn(errors)
 
@@ -230,7 +238,7 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 		return
 	}
 
-	fmt.Printf("Training:\n\tModel: Multinomial Naïve Bayes\n\tClasses: %v", len(b.Count))
+	fmt.Printf("Training:\n\tModel: Multinomial Naïve Bayes\n\tClasses: %v\n", len(b.Count))
 
 	var point base.TextDatapoint
 	var more bool
