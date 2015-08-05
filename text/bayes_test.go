@@ -61,8 +61,6 @@ func TestExampleClassificationShouldPass1(t *testing.T) {
 		}
 	}
 
-	fmt.Printf("Words: %v", model.Words)
-
 	// now you can predict like normal
 	class := model.Predict("My mother is in Los Angeles") // 0
 	assert.EqualValues(t, 0, class, "Class should be 0")
@@ -140,9 +138,65 @@ func TestAreaClassificationShouldPass1(t *testing.T) {
 		}
 	}
 
-	fmt.Printf("Words: %v", model.Words)
+	// now you can predict like normal
+	class := model.Predict("a lot of Japanese People live in Japan")
+	assert.EqualValues(t, 1, class, "Class should be 1")
+}
+
+func TestPersistPerceptronShouldPass1(t *testing.T) {
+	// create the channel of data and errors
+	stream := make(chan base.TextDatapoint, 100)
+	errors := make(chan error)
+
+	model := NewNaiveBayes(stream, 3, base.OnlyWordsAndNumbers)
+
+	go model.OnlineLearn(errors)
+
+	stream <- base.TextDatapoint{
+		X: "I love the city",
+		Y: 0,
+	}
+
+	stream <- base.TextDatapoint{
+		X: "I hate Los Angeles",
+		Y: 1,
+	}
+
+	stream <- base.TextDatapoint{
+		X: "My mother is not a nice lady",
+		Y: 1,
+	}
+
+	close(stream)
+
+	for {
+		err, more := <-errors
+		if more {
+			fmt.Printf("Error passed: %v", err)
+		} else {
+			// training is done!
+			break
+		}
+	}
 
 	// now you can predict like normal
-	class := model.Predict("a lot of Japanese People live in Japan") // 0
+	class := model.Predict("My mother is in Los Angeles") // 0
+	assert.EqualValues(t, 1, class, "Class should be 0")
+
+	// now persist to file
+	err := model.PersistToFile("/tmp/.goml/NaiveBayes.json")
+	assert.Nil(t, err, "Persistance error should be nil")
+
+	model = NewNaiveBayes(stream, 3, base.OnlyWordsAndNumbers)
+
+	class = model.Predict("My mother is in Los Angeles") // 0
+	assert.EqualValues(t, 0, class, "Class should be 0")
+
+	// restore from file
+	err = model.RestoreFromFile("/tmp/.goml/NaiveBayes.json")
+	assert.Nil(t, err, "Persistance error should be nil")
+
+	// now you can predict like normal
+	class = model.Predict("My mother is in Los Angeles") // 0
 	assert.EqualValues(t, 1, class, "Class should be 0")
 }
