@@ -42,6 +42,8 @@ Sub-bullets below will take you directly to the source code of the model.
   	* Both online and batch versions
   * [K-Nearest-Neighbors Clustering](cluster/knn.go)
   	* Can use any distance metric, with L-p Norm, Euclidean Distance, and Manhattan Distance pre-defined within the `goml/base` package
+- [Text Classification](text/)
+  * [Multinomial (Multiclass) Text-Based Naive Bayes](text/bayes.go)
 
 ## Contributing!
 
