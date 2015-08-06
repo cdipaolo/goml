@@ -313,7 +313,7 @@ func (b *NaiveBayes) UpdateSanitize(sanitize func(rune) bool) {
 // we're using it to print the model as the equation h(θ)=...
 // where h is the perceptron hypothesis model.
 func (b *NaiveBayes) String() string {
-	return fmt.Sprintf("h(θ) = argmax_c{log(P(y = c)) + ΣP(x|y = c)}\n\tClasses: %v\n\tDocuments evaluated in model: %v\n\tWords evaluated in model: %v\n", len(b.Count), int(b.DocumentCount), int(b.DictCount))
+	return fmt.Sprintf("h(θ) = argmax_c{log(P(y = c)) + Σlog(P(x|y = c))}\n\tClasses: %v\n\tDocuments evaluated in model: %v\n\tWords evaluated in model: %v\n", len(b.Count), int(b.DocumentCount), int(b.DictCount))
 }
 
 // PersistToFile takes in an absolute filepath and saves the
