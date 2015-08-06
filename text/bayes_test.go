@@ -65,6 +65,15 @@ func TestExampleClassificationShouldPass1(t *testing.T) {
 	// now you can predict like normal
 	class := model.Predict("My mo~~~ther is in Los Angeles") // 0
 	assert.EqualValues(t, 0, class, "Class should be 0")
+
+	// test small document classification
+	class, p := model.Probability("Mother Los Angeles")
+	assert.EqualValues(t, 0, class, "Class should be 0")
+	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is negative - Given %v", p)
+
+	class, p = model.Probability("Love the CiTy")
+	assert.EqualValues(t, 1, class, "Class should be 0")
+	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
 }
 
 func TestAreaClassificationShouldPass1(t *testing.T) {

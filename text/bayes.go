@@ -225,6 +225,58 @@ func (b *NaiveBayes) Predict(sentence string) uint8 {
 	return uint8(maxI)
 }
 
+// Probability takes in a small document, returns the
+// estimated class of the document based on the model
+// as well as the probability that the model is part
+// of that class
+//
+// NOTE: you should only use this for small documents
+// because, as discussed in the docs for the model, the
+// probability will often times underflow because you
+// are multiplying together a bunch of probabilities
+// which range on [0,1]. As such, the returned float
+// could be NaN, and the predicted class could be
+// 0 always.
+//
+// Basically, use Predict to be robust for larger
+// documents. Use Probability only on relatively small
+// (MAX of maybe a dozen words - basically just
+// sentences and words) documents.
+func (b *NaiveBayes) Probability(sentence string) (uint8, float64) {
+	sums := make([]float64, len(b.Count))
+	for i := range sums {
+		sums[i] = 1
+	}
+
+	sentence, _, _ = transform.String(b.sanitize, sentence)
+	w := strings.Split(strings.ToLower(sentence), " ")
+	for _, word := range w {
+		if _, ok := b.Words[word]; !ok {
+			continue
+		}
+
+		for i := range sums {
+			sums[i] *= float64(b.Words[word].Count[i]+1) / float64(b.Words[word].Seen+b.DictCount)
+		}
+	}
+
+	for i := range sums {
+		sums[i] *= b.Probabilities[i]
+	}
+
+	var denom float64
+	var maxI int
+	for i := range sums {
+		if sums[i] > sums[maxI] {
+			maxI = i
+		}
+
+		denom += sums[i]
+	}
+
+	return uint8(maxI), sums[maxI] / denom
+}
+
 // OnlineLearn lets the NaiveBayes model learn
 // from the datastream, waiting for new data to
 // come into the stream from a separate goroutine
