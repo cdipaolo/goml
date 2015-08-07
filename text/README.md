@@ -9,7 +9,7 @@ This package implements text classification algorithms. For algorithms that coul
 
 - [multiclass naive bayes](bayes.go)
 
-### example ordinary least squares
+### example online naive bayes sentiment analysis
 
 This is the general text classification example from the GoDoc package comment. Look there and at the tests for more detailed and varied examples of usage:
 ```go
