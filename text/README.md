@@ -8,6 +8,9 @@ This package implements text classification algorithms. For algorithms that coul
 ### implemented models
 
 - [multiclass naive bayes](bayes.go)
+- [term frequency - inverse document frequency](tfidf.go)
+  * this model lets you easily calculate keywords from documents, as well as general importance scores for any word (with it's document) that you can throw at it!
+  * because this is so similar to Bayes under the hood, you train TFIDF by casting a trained Bayes model to it such as `tfidf := TFIDF(*myNaiveBayesModel)`
 
 ### example ordinary least squares
 
