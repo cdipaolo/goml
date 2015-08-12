@@ -1,16 +1,11 @@
 package text
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"math"
-	"os"
+	"sort"
 	"strings"
 
 	"golang.org/x/text/transform"
-
-	"github.com/cdipaolo/goml/base"
 )
 
 /*
@@ -51,11 +46,15 @@ type Frequency struct {
 	TFIDF     float64 `json:"tfidf_score,omitempty"`
 }
 
+// Frequencies is an array of word frequencies
+// (stored as separate type to be able to sort)
+type Frequencies []Frequency
+
 //* implement sort.Interface for Frequency list *//
 
 // Len gives the length of a
 // frequency array
-func (f []Frequency) Len() int {
+func (f Frequencies) Len() int {
 	return len(f)
 }
 
@@ -63,13 +62,13 @@ func (f []Frequency) Len() int {
 // of a frequency list has is lesser
 // than the jth element by comparing
 // their TFIDF values
-func (f []Frequency) Less(i, j int) bool {
+func (f Frequencies) Less(i, j int) bool {
 	return f[i].TFIDF < f[j].TFIDF
 }
 
 // Swap swaps two indexed values in
 // a frequency slice
-func (f []Frequency) Swap(i, j int) {
+func (f Frequencies) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
@@ -80,7 +79,10 @@ func (f []Frequency) Swap(i, j int) {
 //
 // Look at the TFIDF docs to see more about how
 // this is calculated
-func (t *TFIDF) TFIDF(word string, document []string) float64 {
+func (t *TFIDF) TFIDF(word string, sentence string) float64 {
+	sentence, _, _ = transform.String(t.sanitize, sentence)
+	document := strings.Split(strings.ToLower(sentence), " ")
+
 	return t.TermFrequency(word, document) * t.InverseDocumentFrequency(word)
 }
 
@@ -92,15 +94,18 @@ func (t *TFIDF) TFIDF(word string, document []string) float64 {
 //
 // The returned keyword slice is sorted
 // by importance
-func (t *TFIDF) MostImportantWords(document []string, n int) []string {
+func (t *TFIDF) MostImportantWords(sentence string, n int) Frequencies {
+	sentence, _, _ = transform.String(t.sanitize, sentence)
+	document := strings.Split(strings.ToLower(sentence), " ")
+
 	freq := TermFrequencies(document)
 	for i := range freq {
-		freq[i].TFIDF = freq[i].Frequency * t.InverseDocumentFrequency(i)
+		freq[i].TFIDF = freq[i].Frequency * t.InverseDocumentFrequency(freq[i].Word)
 		freq[i].Frequency = float64(0.0)
 	}
 
 	// sort into slice
-	sort.Sort(freq)
+	sort.Sort(sort.Reverse(freq))
 
 	if n > len(freq) {
 		return freq
@@ -129,14 +134,14 @@ func (t *TFIDF) TermFrequency(word string, document []string) float64 {
 		}
 	}
 
-	return 0.5 * (1 + float64(words[word])/maxFreq)
+	return 0.5 * (1 + float64(words[word])/float64(maxFreq))
 }
 
 // TermFrequencies gives the TermFrequency of
 // all words in a document, and is more efficient
 // at doing so than calling that function multiple
 // times
-func TermFrequencies(document []string) []Frequency {
+func TermFrequencies(document []string) Frequencies {
 	words := make(map[string]int)
 	for i := range document {
 		words[document[i]]++
@@ -150,11 +155,11 @@ func TermFrequencies(document []string) []Frequency {
 	}
 
 	// make frequency map
-	frequencies := []Frequency{}
+	frequencies := Frequencies{}
 	for i := range words {
 		frequencies = append(frequencies, Frequency{
 			Word:      i,
-			Frequency: 0.5 * (1 + float64(words[i])/maxFreq),
+			Frequency: 0.5 * (1 + float64(words[i])/float64(maxFreq)),
 		})
 	}
 
@@ -168,5 +173,5 @@ func TermFrequencies(document []string) []Frequency {
 // Look at the TFIDF docs to see more about how
 // this is calculated
 func (t *TFIDF) InverseDocumentFrequency(word string) float64 {
-	return math.Log(float64(t.DocumentCount) * float64(t.Words[word].DocsSeen))
+	return math.Log(float64(t.DocumentCount)) - math.Log(float64(t.Words[word].DocsSeen)+1)
 }

@@ -173,6 +173,11 @@ type Word struct {
 	// recalc the probabilities (foldl
 	// is the same as reduce, basically.)
 	Seen uint64
+
+	// DocsSeen is the same as Seen but
+	// a word is only counted once even
+	// if it's in a document multiple times
+	DocsSeen uint64
 }
 
 // NewNaiveBayes returns a NaiveBayes model the
@@ -319,6 +324,9 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 				b.Probabilities[i] = float64(b.Count[i]) / float64(b.DocumentCount)
 			}
 
+			// store words seen in document (to add to DocsSeen)
+			seenCount := make(map[string]int)
+
 			// update probabilities for words
 			for _, word := range words {
 				if len(word) < 3 {
@@ -340,6 +348,15 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 				w.Seen++
 
 				b.Words[word] = w
+
+				seenCount[word] = 1
+			}
+
+			// add to DocsSeen
+			for term := range seenCount {
+				tmp := b.Words[term]
+				tmp.DocsSeen++
+				b.Words[term] = tmp
 			}
 		} else {
 			fmt.Printf("Training Completed.\n%v\n\n", b)
