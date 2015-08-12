@@ -28,7 +28,7 @@ useful in, say, keyword tagging.
 
 Term frequency is basically just adjusted
 frequency of a word within a document/sentence:
-termFrequency(word, doc) = 0.5 * ( 0.5 * word.Count/doc.CountWords ) / max{ w.Count/doc.CountWords | w ∈ doc }
+termFrequency(word, doc) = 0.5 * ( 0.5 * word.Count ) / max{ w.Count | w ∈ doc }
 
 Inverse document frequency is basically how
 little the term is mentioned within all of
@@ -42,6 +42,37 @@ the word is less important
 */
 type TFIDF NaiveBayes
 
+// Frequency holds word frequency information
+// so you don't have to hold a map[string]float64
+// and can, then, sort
+type Frequency struct {
+	Word      string  `json:"word"`
+	Frequency float64 `json:"frequency,omitempty"`
+	TFIDF     float64 `json:"tfidf_score,omitempty"`
+}
+
+//* implement sort.Interface for Frequency list *//
+
+// Len gives the length of a
+// frequency array
+func (f []Frequency) Len() int {
+	return len(f)
+}
+
+// Less gives whether the ith element
+// of a frequency list has is lesser
+// than the jth element by comparing
+// their TFIDF values
+func (f []Frequency) Less(i, j int) bool {
+	return f[i].TFIDF < f[j].TFIDF
+}
+
+// Swap swaps two indexed values in
+// a frequency slice
+func (f []Frequency) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
 // TFIDF returns the TermFrequency-
 // InverseDocumentFrequency of a word
 // within a corpus given by the trained
@@ -50,7 +81,32 @@ type TFIDF NaiveBayes
 // Look at the TFIDF docs to see more about how
 // this is calculated
 func (t *TFIDF) TFIDF(word string, document []string) float64 {
-	return t.TermFrequency(word, document) * t.InverseDocumentFrequency(word, document)
+	return t.TermFrequency(word, document) * t.InverseDocumentFrequency(word)
+}
+
+// MostImportantWords runs TFIDF on a
+// whole document, returning the n most
+// important words in the document. If
+// n is greater than the number of words
+// then all words will be returned.
+//
+// The returned keyword slice is sorted
+// by importance
+func (t *TFIDF) MostImportantWords(document []string, n int) []string {
+	freq := TermFrequencies(document)
+	for i := range freq {
+		freq[i].TFIDF = freq[i].Frequency * t.InverseDocumentFrequency(i)
+		freq[i].Frequency = float64(0.0)
+	}
+
+	// sort into slice
+	sort.Sort(freq)
+
+	if n > len(freq) {
+		return freq
+	}
+
+	return freq[:n]
 }
 
 // TermFrequency returns the term frequency
@@ -60,7 +116,49 @@ func (t *TFIDF) TFIDF(word string, document []string) float64 {
 // Look at the TFIDF docs to see more about how
 // this is calculated
 func (t *TFIDF) TermFrequency(word string, document []string) float64 {
+	words := make(map[string]int)
+	for i := range document {
+		words[document[i]]++
+	}
 
+	// find max word frequency
+	var maxFreq int
+	for i := range words {
+		if words[i] > maxFreq {
+			maxFreq = words[i]
+		}
+	}
+
+	return 0.5 * (1 + float64(words[word])/maxFreq)
+}
+
+// TermFrequencies gives the TermFrequency of
+// all words in a document, and is more efficient
+// at doing so than calling that function multiple
+// times
+func TermFrequencies(document []string) []Frequency {
+	words := make(map[string]int)
+	for i := range document {
+		words[document[i]]++
+	}
+
+	var maxFreq int
+	for i := range words {
+		if words[i] > maxFreq {
+			maxFreq = words[i]
+		}
+	}
+
+	// make frequency map
+	frequencies := []Frequency{}
+	for i := range words {
+		frequencies = append(frequencies, Frequency{
+			Word:      i,
+			Frequency: 0.5 * (1 + float64(words[i])/maxFreq),
+		})
+	}
+
+	return frequencies
 }
 
 // InverseDocumentFrequency returns the 'uniqueness'
@@ -69,6 +167,6 @@ func (t *TFIDF) TermFrequency(word string, document []string) float64 {
 //
 // Look at the TFIDF docs to see more about how
 // this is calculated
-func (t *TFIDF) InverseDocumentFrequency(word string, document []string) float64 {
-
+func (t *TFIDF) InverseDocumentFrequency(word string) float64 {
+	return math.Log(float64(t.DocumentCount) * float64(t.Words[word].DocsSeen))
 }
