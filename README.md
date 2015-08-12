@@ -44,6 +44,9 @@ Sub-bullets below will take you directly to the source code of the model.
   	* Can use any distance metric, with L-p Norm, Euclidean Distance, and Manhattan Distance pre-defined within the `goml/base` package
 - [Text Classification](text/)
   * [Multinomial (Multiclass) Text-Based Naive Bayes](text/bayes.go)
+  * [Term Frequency - Inverse Document Frequency](text/tfidf.go)
+    * this lets you find keywords/important words from documents
+    * because it's so similar to Bayes under the hood, you cast a NaiveBayes model to TFIDF to get a model. [Look at these tests to see an example](text/tfidf_test.go)
 
 ## Contributing!
 
