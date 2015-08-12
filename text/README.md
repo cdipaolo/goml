@@ -12,7 +12,7 @@ This package implements text classification algorithms. For algorithms that coul
   * this model lets you easily calculate keywords from documents, as well as general importance scores for any word (with it's document) that you can throw at it!
   * because this is so similar to Bayes under the hood, you train TFIDF by casting a trained Bayes model to it such as `tfidf := TFIDF(*myNaiveBayesModel)`
 
-### example ordinary least squares
+### example online naive bayes sentiment analysis
 
 This is the general text classification example from the GoDoc package comment. Look there and at the tests for more detailed and varied examples of usage:
 ```go
