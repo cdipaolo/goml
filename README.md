@@ -4,9 +4,13 @@
 [![GoDoc](https://godoc.org/github.com/cdipaolo/goml?status.svg)](https://godoc.org/github.com/cdipaolo/goml)
 [![wercker status](https://app.wercker.com/status/50a8cfa6170784809e3308941212cef4/s "wercker status")](https://app.wercker.com/project/bykey/50a8cfa6170784809e3308941212cef4)
 
-goml (pronounced like the data format 'toml') is a batteries included machine learning library written entirely in Golang. It lets you create models of data stored as float64's, persist them to disk, and predict other values from them. **The coolest part, among many cool parts, is that you can train most models in an on-line fashion, learning in a 'reactive' manner while waiting for further data on channels!** Most models can also be trained in batch settings, using either stochastic _or_ batch gradient descent!
+`goml` is a machine learning library written entirely in Golang which lets the average developer include machine learning into their applications. (pronounced like the data format 'toml')
 
-Each of the packages have individual README's where you can learn about how to use each of the models. Even better than the short summaries in the README is the **extensive documentation with examples and descriptions** in GoDoc (look at the button above.) You could also look at our **comprehensive tests** to see error handline and other details, as well as look at the **clean, expressive, and modular source code**.
+While models include traditional, batch learning interfaces, `goml` includes many models which let you learn in an online, reactive manner by passing data to streams held on channels.
+
+The library includes **comprehensive tests**, **extensive documentation**, and **clean, expressive, modular source code**. Community contribution is heavily encouraged.
+
+Each package (mentioned below) includes individual README's to learn more about the function, and purpose of the models. Above all, if you want to learn about models, read the GoDoc reference for the package. All models are, as mentioned above, heavily documented.
 
 ## Installation
 
