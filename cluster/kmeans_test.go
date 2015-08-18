@@ -58,7 +58,7 @@ func init() {
 // randomization of the clusters leaves two
 // areas with the same classification
 func TestKMeansShouldPass1(t *testing.T) {
-	model := NewKMeans(4, 30, circles)
+	model := NewKMeans(4, 2, circles)
 
 	assert.Nil(t, model.Learn(), "Learning error should be nil")
 
@@ -133,7 +133,7 @@ func TestKMeansShouldPass1(t *testing.T) {
 func TestKMeansShouldPass2(t *testing.T) {
 	norm := append([][]float64{}, circles...)
 	base.Normalize(norm)
-	model := NewKMeans(4, 30, norm)
+	model := NewKMeans(4, 2, norm)
 
 	assert.Nil(t, model.Learn(), "Learning error should be nil")
 
@@ -214,7 +214,7 @@ func TestKMeansShouldPass3(t *testing.T) {
 	var err error
 
 	for iter := 0; iter < 30; iter++ {
-		model := NewKMeans(2, 30, double)
+		model := NewKMeans(2, 2, double)
 
 		assert.Nil(t, model.Learn(), "Learning error should be nil")
 
@@ -420,7 +420,7 @@ func TestKMeansPersistToFileShouldPass1(t *testing.T) {
 	var c1, c2 []float64
 	var err error
 
-	model := NewKMeans(2, 30, double)
+	model := NewKMeans(2, 2, double)
 
 	assert.Nil(t, model.Learn(), "Learning error should be nil")
 

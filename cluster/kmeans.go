@@ -32,7 +32,10 @@ func diff(u, v []float64) float64 {
 
 /*
 KMeans implements the k-means unsupervised
-clustering algorithm.
+clustering algorithm. The batch version
+of the model used k=means++ as the instantiation
+of the model. The online version doesn't, because
+that wouldn't make sense!
 
 https://en.wikipedia.org/wiki/K-means_clustering
 
@@ -263,6 +266,12 @@ func (k *KMeans) Predict(x []float64, normalize ...bool) ([]float64, error) {
 // Learn takes the struct's dataset and expected results and runs
 // batch gradient descent on them, optimizing theta so you can
 // predict based on those results
+//
+// This batch version of the model uses the k-means++
+// instantiation method to generate a consistantly better
+// model than regular, randomized instantiation of
+// centroids.
+// Paper: http://ilpubs.stanford.edu:8090/778/1/2006-13.pdf
 func (k *KMeans) Learn() error {
 	if k.trainingSet == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
@@ -280,7 +289,35 @@ func (k *KMeans) Learn() error {
 	centroids := len(k.Centroids)
 	features := len(k.trainingSet[0])
 
-	fmt.Printf("Training:\n\tModel: K-Means Classification\n\tTraining Examples: %v\n\tFeatures: %v\n\tClasses: %v\n...\n\n", examples, features, centroids)
+	fmt.Printf("Training:\n\tModel: K-Means++ Classification\n\tTraining Examples: %v\n\tFeatures: %v\n\tClasses: %v\n...\n\n", examples, features, centroids)
+
+	// instantiate the centroids using k-means++
+	k.Centroids[0] = k.trainingSet[rand.Intn(len(k.trainingSet))]
+
+	distances := make([]float64, len(k.trainingSet))
+	for i := 1; i < len(k.Centroids); i++ {
+		var sum float64
+		for j, x := range k.trainingSet {
+			minDiff := diff(x, k.Centroids[0])
+			for l := 1; l < i; l++ {
+				difference := diff(x, k.Centroids[l])
+				if difference < minDiff {
+					minDiff = difference
+				}
+			}
+
+			distances[j] = minDiff * minDiff
+			sum += distances[j]
+		}
+
+		target := rand.Float64() * sum
+		j := 0
+		for sum = distances[0]; sum < target; sum += distances[j] {
+			j++
+		}
+		k.Centroids[i] = k.trainingSet[j]
+
+	}
 
 	iter := 0
 	for ; iter < k.maxIterations; iter++ {
