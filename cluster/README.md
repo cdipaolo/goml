@@ -8,6 +8,7 @@ This part of the `goml` package implements clustering algorithms, unsupervised _
 ### implemented models
 
 - [k-means clustering](kmeans.go)
+    * Uses k-means++ instantiation for more reliable clustering ([this paper](http://ilpubs.stanford.edu:8090/778/1/2006-13.pdf) outlines the method)
 	* Both online and batch versions of the algorithm
 	* Online version implements the algorithm discussed in [this paper](http://ocw.mit.edu/courses/sloan-school-of-management/15-097-prediction-machine-learning-and-statistics-spring-2012/projects/MIT15_097S12_proj1.pdf)
 - [n-nearest-neighbors clustering](knn.go)
