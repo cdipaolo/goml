@@ -3,6 +3,7 @@ package cluster
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -49,6 +50,13 @@ func init() {
 		for j := -10.0; j < 10; j += 0.1 {
 			double = append(double, []float64{i, j})
 		}
+	}
+
+	// create the /tmp/.goml/ dir for persistance testing
+	// if it doesn't already exist!
+	err := os.MkdirAll("/tmp/.goml", os.ModePerm)
+	if err != nil {
+		panic(fmt.Sprintf("You should be able to create the directory for goml model persistance testing.\n\tError returned: %v\n", err.Error()))
 	}
 }
 

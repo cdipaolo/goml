@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -60,6 +61,13 @@ func init() {
 			twoClustersY = append(twoClustersY, 1.0)
 		}
 	}
+
+	// create the /tmp/.goml/ dir for persistance testing
+	// if it doesn't already exist!
+	err := os.MkdirAll("/tmp/.goml", os.ModePerm)
+	if err != nil {
+		panic(fmt.Sprintf("You should be able to create the directory for goml model persistance testing.\n\tError returned: %v\n", err.Error()))
+	}
 }
 
 func TestInsertSortedShouldPass1(t *testing.T) {
@@ -73,7 +81,7 @@ func TestInsertSortedShouldPass1(t *testing.T) {
 		Distance: -12.0,
 	}, nn{
 		Distance: -10.0,
-	}})
+	}}, 4)
 
 	fmt.Printf("Sorted List: %v\n", sorted)
 
@@ -95,7 +103,7 @@ func TestInsertSortedShouldPass2(t *testing.T) {
 		Distance: 14.0,
 	}, nn{
 		Distance: 15.0,
-	}})
+	}}, 4)
 
 	fmt.Printf("Sorted List: %v\n", sorted)
 
@@ -117,7 +125,7 @@ func TestInsertSortedShouldPass3(t *testing.T) {
 		Distance: 15.0,
 	}, nn{
 		Distance: 16.0,
-	}})
+	}}, 4)
 
 	fmt.Printf("Sorted List: %v\n", sorted)
 
@@ -139,7 +147,7 @@ func TestInsertSortedShouldPass4(t *testing.T) {
 		Distance: 15.0,
 	}, nn{
 		Distance: 16.0,
-	}})
+	}}, 4)
 
 	fmt.Printf("Sorted List: %v\n", sorted)
 
@@ -148,6 +156,29 @@ func TestInsertSortedShouldPass4(t *testing.T) {
 	assert.Equal(t, 13.0, sorted[1].Distance, "Sorted[1] should match initial")
 	assert.Equal(t, 13.0, sorted[2].Distance, "Sorted[2] should match initial")
 	assert.Equal(t, 15.0, sorted[3].Distance, "Sorted[3] should match initial")
+}
+
+func TestInsertSortedShouldPass5(t *testing.T) {
+	sorted := insertSorted(nn{
+		Distance: 13.0,
+	}, []nn{nn{
+		Distance: 12.0,
+	}, nn{
+		Distance: 13.0,
+	}, nn{
+		Distance: 15.0,
+	}, nn{
+		Distance: 16.0,
+	}}, 6)
+
+	fmt.Printf("Sorted List: %v\n", sorted)
+
+	assert.Equal(t, 5, len(sorted), "Length of sorted array should allow entry")
+	assert.Equal(t, 12.0, sorted[0].Distance, "Sorted[0] should be the lowest distance given")
+	assert.Equal(t, 13.0, sorted[1].Distance, "Sorted[1] should match initial")
+	assert.Equal(t, 13.0, sorted[2].Distance, "Sorted[2] should match initial")
+	assert.Equal(t, 15.0, sorted[3].Distance, "Sorted[3] should match initial")
+	assert.Equal(t, 16.0, sorted[4].Distance, "Sorted[4] should match initial")
 }
 
 func TestKNNShouldPass1(t *testing.T) {

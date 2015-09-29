@@ -3,7 +3,6 @@ package cluster
 import (
 	"fmt"
 	"math"
-	"math/rand"
 
 	"github.com/cdipaolo/goml/base"
 )
@@ -130,8 +129,11 @@ func (k *KNN) Examples() int {
 // of v, though, such that if u would appear last
 // in the combined sorted list it would just be omitted.
 //
+// if the length of V is less than K, then u is inserted
+// without deleting the last element
+//
 // Assumes v has been sorted. Uses binary search.
-func insertSorted(u nn, v []nn) []nn {
+func insertSorted(u nn, v []nn, K int) []nn {
 	low := 0
 	high := len(v) - 1
 	for low <= high {
@@ -143,13 +145,16 @@ func insertSorted(u nn, v []nn) []nn {
 		}
 	}
 
-	if low >= len(v) {
+	if low >= len(v) && len(v) >= K {
 		return v
 	}
 
-	sorted := append(v[:low], append([]nn{u}, v[low:]...)...)[:len(v)]
+	sorted := append(v[:low], append([]nn{u}, v[low:]...)...)
 
-	return sorted
+	if len(v) < K {
+		return sorted
+	}
+	return sorted[:len(v)]
 }
 
 // round rounds a float64
@@ -182,19 +187,9 @@ func (k *KNN) Predict(x []float64, normalize ...bool) ([]float64, error) {
 
 	// initialize neighbors with first k
 	// training examples
-	neighbors := make([]nn, k.K)
-	length := len(k.trainingSet)
-	for i := range neighbors {
-		index := rand.Intn(length)
-		neighbors[i] = nn{
-			X: k.trainingSet[index],
-			Y: k.expectedResults[index],
+	neighbors := []nn{}
 
-			Distance: k.Distance(x, k.trainingSet[index]),
-		}
-	}
 	// calculate nearest neighbors
-	var count int
 	for i := range k.trainingSet {
 		dist := k.Distance(x, k.trainingSet[i])
 		neighbors = insertSorted(nn{
@@ -202,8 +197,7 @@ func (k *KNN) Predict(x []float64, normalize ...bool) ([]float64, error) {
 			Y: k.expectedResults[i],
 
 			Distance: dist,
-		}, neighbors)
-		count++
+		}, neighbors, k.K)
 	}
 
 	// take weighted vote
