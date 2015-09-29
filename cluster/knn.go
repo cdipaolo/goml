@@ -185,8 +185,10 @@ func (k *KNN) Predict(x []float64, normalize ...bool) ([]float64, error) {
 		base.NormalizePoint(x)
 	}
 
-	// initialize neighbors with first k
-	// training examples
+	// initialize the neighbors as an empty
+	// slice of Neighbors. insertSorted will
+	// take care of capping the neighbors at
+	// K.
 	neighbors := []nn{}
 
 	// calculate nearest neighbors
