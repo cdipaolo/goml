@@ -510,7 +510,7 @@ func (k *TriangleKMeans) Learn() error {
 
 		/* Step 4 */
 		newCentroids := k.recalculateCentroids()
-		for i, _ := range k.trainingSet {
+		for i := range k.trainingSet {
 			/* Step 5 */
 			for j := range k.Centroids {
 				// calculate the shift to the new centroid
