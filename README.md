@@ -45,6 +45,7 @@ Sub-bullets below will take you directly to the source code of the model.
   * [K-Means Clustering](cluster/kmeans.go)
     * Uses k-means++ instantiation for more reliable clusters ([this paper](http://ilpubs.stanford.edu:8090/778/1/2006-13.pdf) discusses the method and it's benefits over regular, random instantiation)
   	* Both online and batch versions
+    * Includes a version which uses the [Triangle Inequality](https://en.wikipedia.org/wiki/Triangle_inequality) to dramatically reduce the number of distance calculations at the expense of auxillary data structures, as describes in [this paper](http://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
   * [K-Nearest-Neighbors Clustering](cluster/knn.go)
   	* Can use any distance metric, with L-p Norm, Euclidean Distance, and Manhattan Distance pre-defined within the `goml/base` package
 - [Text Classification](text/)
