@@ -12,7 +12,7 @@ import (
 )
 
 // diff returns the square magnitude of the
-// vector subtrraction between u and v. This
+// vector subtraction between u and v. This
 // is also known as the Squared Euclidean
 // Distance:
 //
@@ -94,14 +94,14 @@ Example KMeans Model Usage:
 
 	// you can also persist the model to a
 	// file
-	err = model.PersistToFile("/tmp/.goml/KMeans.csv")
+	err = model.PersistToFile("/tmp/.goml/KMeans.json")
 	if err != nil {
 		panic("file save error")
 	}
 
 	// and also restore from file (at a
 	// later time if you want)
-	err = model.RestoreFromFile("/tmp/.goml/KMeans.csv")
+	err = model.RestoreFromFile("/tmp/.goml/KMeans.json")
 	if err != nil {
 		panic("file save error")
 	}

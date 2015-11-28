@@ -26,14 +26,14 @@ a lot on these extra data structures, but
 	 distance calculations. However, the total
 	 execution time is always much less than the
 	 time required by standard k-means"
-    (Eklan 2003)
+    (Eklan 2003, University of California, San Diego)
 
 Note that this algorithm also uses k-means++
 instantiation for more reliable clustering. The
 Triangle Inequality optimizations operate on a
 different sector of the algorithm.
 
-
+http://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf
 https://en.wikipedia.org/wiki/K-means_clustering
 
 Example KMeans Model Usage:
@@ -52,6 +52,8 @@ Example KMeans Model Usage:
 		}
 	}
 
+	// note that this is the only
+	// different line from regular k-means
 	model := NewTriangleKMeans(2, 30, double)
 
 	if model.Learn() != nil {
@@ -77,7 +79,7 @@ Example KMeans Model Usage:
 		panic("prediction error")
 	}
 
-	// or if you want to get the clustering
+	// or if you just want to get the clustering
 	// results from the data
 	results := model.Guesses()
 
@@ -91,14 +93,14 @@ Example KMeans Model Usage:
 
 	// you can also persist the model to a
 	// file
-	err = model.PersistToFile("/tmp/.goml/KMeans.csv")
+	err = model.PersistToFile("/tmp/.goml/KMeans.json")
 	if err != nil {
 		panic("file save error")
 	}
 
 	// and also restore from file (at a
 	// later time if you want)
-	err = model.RestoreFromFile("/tmp/.goml/KMeans.csv")
+	err = model.RestoreFromFile("/tmp/.goml/KMeans.json")
 	if err != nil {
 		panic("file save error")
 	}
@@ -128,14 +130,22 @@ type TriangleKMeans struct {
 	// [][]float64{guesses[i]} == Predict(trainingSet[i])
 	trainingSet [][]float64
 	guesses     []int
+	info        []pointInfo
 
 	Centroids [][]float64 `json:"centroids"`
 
 	// centroidDist is a K x K matrix of
 	// the distances such that centroidDist[i][j]
 	// is the distance from centroid i to centroid
-	// j.
-	centroidDist [][]float64
+	// j. minCentroidDist is the minimum distance
+	// from the i-th centroid to any other
+	// centroid. Note that the minCentroidDist
+	// distances are actually half of the actual
+	// min. This is because, as seen in the paper,
+	// that's all we need to bound our distance
+	// calculations
+	centroidDist    [][]float64
+	minCentroidDist []float64
 }
 
 // pointInfo stores information needed to use
@@ -174,33 +184,42 @@ func NewTriangleKMeans(k, maxIterations int, trainingSet [][]float64) *TriangleK
 	// start all guesses with the zero vector.
 	// they will be changed during learning
 	var guesses []int
+	var info []pointInfo
 	guesses = make([]int, len(trainingSet))
-
-	rand.Seed(time.Now().UTC().Unix())
-	centroids := make([][]float64, k)
-	for i := range centroids {
-		centroids[i] = make([]float64, features)
-		for j := range centroids[i] {
-			centroids[i][j] = 10 * (rand.Float64() - 0.5)
+	info = make([]pointInfo, len(trainingSet))
+	for i := range info {
+		info[i] = pointInfo{
+			lower:     make([]float64, k),
+			upper:     0,
+			recompute: true,
 		}
 	}
 
-	return &KMeans{
-		maxIterations: maxIterations,
+	rand.Seed(time.Now().UTC().Unix())
+	centroids := make([][]float64, k)
+	centroidDist := make([][]float64, k)
+	minCentroidDist := make([]float64, k)
+	for i := range centroids {
+		centroids[i] = make([]float64, features)
+		centroidDist[i] = make([]float64, k)
+	}
 
-		alpha: alpha,
+	return &TriangleKMeans{
+		maxIterations: maxIterations,
 
 		trainingSet: trainingSet,
 		guesses:     guesses,
 
-		Centroids: centroids,
+		Centroids:       centroids,
+		centroidDist:    centroidDist,
+		minCentroidDist: minCentroidDist,
 	}
 }
 
 // UpdateTrainingSet takes in a new training set (variable x.)
 //
 // Will reset the hidden 'guesses' param of the KMeans model.
-func (k *KMeans) UpdateTrainingSet(trainingSet [][]float64) error {
+func (k *TriangleKMeans) UpdateTrainingSet(trainingSet [][]float64) error {
 	if len(trainingSet) == 0 {
 		return fmt.Errorf("Error: length of given training set is 0! Need data!")
 	}
@@ -211,29 +230,15 @@ func (k *KMeans) UpdateTrainingSet(trainingSet [][]float64) error {
 	return nil
 }
 
-// UpdateLearningRate set's the learning rate of the model
-// to the given float64.
-func (k *KMeans) UpdateLearningRate(a float64) {
-	k.alpha = a
-}
-
-// LearningRate returns the learning rate α for gradient
-// descent to optimize the model. Could vary as a function
-// of something else later, potentially.
-func (k *KMeans) LearningRate() float64 {
-	return k.alpha
-}
-
 // Examples returns the number of training examples (m)
 // that the model currently is training from.
-func (k *KMeans) Examples() int {
+func (k *TriangleKMeans) Examples() int {
 	return len(k.trainingSet)
 }
 
 // MaxIterations returns the number of maximum iterations
-// the model will go through in GradientAscent, in the
-// worst case
-func (k *KMeans) MaxIterations() int {
+// the model will go through
+func (k *TriangleKMeans) MaxIterations() int {
 	return k.maxIterations
 }
 
@@ -245,7 +250,7 @@ func (k *KMeans) MaxIterations() int {
 // first be normalized to unit length. Only use this if
 // you trained off of normalized inputs and are feeding
 // an un-normalized input
-func (k *KMeans) Predict(x []float64, normalize ...bool) ([]float64, error) {
+func (k *TriangleKMeans) Predict(x []float64, normalize ...bool) ([]float64, error) {
 	if len(x) != len(k.Centroids[0]) {
 		return nil, fmt.Errorf("Error: Centroid vector should be the same length as input vector!\n\tLength of x given: %v\n\tLength of centroid: %v\n", len(x), len(k.Centroids[0]))
 	}
@@ -267,6 +272,52 @@ func (k *KMeans) Predict(x []float64, normalize ...bool) ([]float64, error) {
 	return []float64{float64(guess)}, nil
 }
 
+// computeCentroidDistanceMatrix, as said in the
+// function name, computes the centroid distance
+// matrix, saving it to the model.
+func (k *TriangleKMeans) computeCentroidDistanceMatrix() {
+	// note that we can just compute the lower triangle
+	// and then copy values over to maintain functionality
+	for i := range k.Centroids {
+		for j := 0; j < i; j++ {
+			k.centroidDist[i][j] = diff(k.Centroids[i], k.Centroids[j])
+		}
+	}
+
+	// now that we've computed the lower triangle, copy
+	// values over to the other half
+	for i := range k.Centroids {
+		for j := len(k.Centroids) - 1; j > i; j-- {
+			k.centroidDist[i][j] = k.centroidDist[j][i]
+		}
+
+	}
+
+	// compute the min distance to any cluster
+	// to save
+	for i := range k.Centroids {
+		var min float64
+		if i == 0 && len(k.Centroids) > 1 {
+			min = k.centroidDist[i][1]
+		} else {
+			min = k.centroidDist[i][0]
+		}
+
+		for j := range k.Centroids {
+			if i == j {
+				continue
+			}
+			if k.centroidDist[i][j] < min {
+				min = k.centroidDist[i][j]
+			}
+		}
+
+		// note that we only want 0.5*min so
+		// we're computing that here.
+		k.minCentroidDist[i] = 0.5 * min
+	}
+}
+
 // Learn takes the struct's dataset and expected results and runs
 // batch gradient descent on them, optimizing theta so you can
 // predict based on those results
@@ -276,7 +327,7 @@ func (k *KMeans) Predict(x []float64, normalize ...bool) ([]float64, error) {
 // model than regular, randomized instantiation of
 // centroids.
 // Paper: http://ilpubs.stanford.edu:8090/778/1/2006-13.pdf
-func (k *KMeans) Learn() error {
+func (k *TriangleKMeans) Learn() error {
 	if k.trainingSet == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
 		fmt.Printf(err.Error())
@@ -381,171 +432,10 @@ func (k *KMeans) Learn() error {
 	return nil
 }
 
-/*
-OnlineLearn implements a variant of the K-Means
-learning algorithm to work with streams of data.
-The basis of the model is discusses within this
-(http://ocw.mit.edu/courses/sloan-school-of-management/15-097-prediction-machine-learning-and-statistics-spring-2012/projects/MIT15_097S12_proj1.pdf)
-paper by an MIT student, along with some theoretical
-assurances of the quality of learning.
-
-The onUpdate callback will be called in a separate
-goroutine whenever the model updates a centroid
-of the cluster. The callback will pass two items
-within the array: an array containing the class
-number (only) of the cluster updated, and the new
-centroid vector for that class
-
-Ex: [[2.0], [1.23, 4.271, 6.013, 7.20312]]
-
-The algorithm performs the following update:
-    0. Get new point x
-    1. Determine the closest cluster μ[i] to point x
-    2. Update the cluster center: μ[i] := μ[i] + α(x - μ[i])
-
-NOTE that this is an unsupervised model! You
-DO NOT need to pass in the Y param of the
-datapoints!
-
-Example Online K-Means Model:
-    model := NewKMeans(4, 0, nil, OnlineParams{
-        alpha:    0.5,
-        features: 4,
-    })
-
-    go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
-
-    go func() {
-        // start passing data to our datastream
-        //
-        // we could have data already in our channel
-        // when we instantiated the model, though
-        for i := -40.0; i < -30; i += 4.99 {
-            for j := -40.0; j < -30; j += 4.99 {
-                for k := -40.0; k < -30; k += 4.99 {
-                    for l := -40.0; l < -30; l += 4.99 {
-                        stream <- base.Datapoint{
-                            X: []float64{i, j, k, l},
-                        }
-                    }
-                }
-            }
-        }
-        for i := -40.0; i < -30; i += 4.99 {
-            for j := 30.0; j < 40; j += 4.99 {
-                for k := -40.0; k < -30; k += 4.99 {
-                    for l := 30.0; l < 40; l += 4.99 {
-                        stream <- base.Datapoint{
-                            X: []float64{i, j, k, l},
-                        }
-                    }
-                }
-            }
-        }
-        for i := 30.0; i < 40; i += 4.99 {
-            for j := -40.0; j < -30; j += 4.99 {
-                for k := 30.0; k < 40; k += 4.99 {
-                    for l := -40.0; l < -30; l += 4.99 {
-                        stream <- base.Datapoint{
-                            X: []float64{i, j, k, l},
-                        }
-                    }
-                }
-            }
-        }
-        for i := 30.0; i < 40; i += 4.99 {
-            for j := -40.0; j < -30; j += 4.99 {
-                for k := -40.0; k < -30; k += 4.99 {
-                    for l := 30.0; l < 40; l += 4.99 {
-                        stream <- base.Datapoint{
-                            X: []float64{i, j, k, l},
-                        }
-                    }
-                }
-            }
-        }
-
-        // close the dataset
-        close(stream)
-    }()
-
-    // this will block until the error
-    // channel is closed in the learning
-    // function (it will, don't worry!)
-    for {
-        err, more := <-errors
-        if err != nil {
-            panic("THERE WAS AN ERROR!!! RUN!!!!")
-          }
-        if !more {
-            break
-        }
-    }
-
-    // Below here all the learning is completed
-
-    // predict like usual
-    guess, err = model.Predict([]float64{42,6,10,-32})
-    if err != nil {
-        panic("AAAARGGGH! SHIVER ME TIMBERS! THESE ROTTEN SCOUNDRELS FOUND AN ERROR!!!")
-    }
-*/
-func (k *KMeans) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
-	if errors == nil {
-		errors = make(chan error)
-	}
-	if dataset == nil {
-		errors <- fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
-		close(errors)
-		return
-	}
-
-	centroids := len(k.Centroids)
-	features := len(k.Centroids[0])
-
-	fmt.Printf("Training:\n\tModel: Online K-Means Classification\n\tFeatures: %v\n\tClasses: %v\n...\n\n", features, centroids)
-
-	var point base.Datapoint
-	var more bool
-
-	oneMinusAlpha := 1.0 - k.alpha
-
-	for {
-		point, more = <-dataset
-
-		if more {
-			if len(point.X) != features {
-				errors <- fmt.Errorf("ERROR: point.X must have the same dimensions as clusters (len %v). Point: %v", point)
-			}
-
-			minDiff := diff(point.X, k.Centroids[0])
-			c := 0
-			for j := 1; j < len(k.Centroids); j++ {
-				difference := diff(point.X, k.Centroids[j])
-				if difference < minDiff {
-					minDiff = difference
-					c = j
-				}
-			}
-
-			for i := range k.Centroids[c] {
-				k.Centroids[c][i] = k.alpha*point.X[i] + oneMinusAlpha*k.Centroids[c][i]
-			}
-
-			go onUpdate([][]float64{[]float64{float64(c)}, k.Centroids[c]})
-
-		} else {
-			fmt.Printf("Training Completed.\n%v\n\n", k)
-			close(errors)
-			return
-		}
-	}
-}
-
 // String implements the fmt interface for clean printing. Here
 // we're using it to print the model as the equation h(θ)=...
 // where h is the k-means hypothesis model
-func (k *KMeans) String() string {
+func (k *TriangleKMeans) String() string {
 	return fmt.Sprintf("h(θ,x) = argmin_j | x[i] - μ[j] |^2\n\tμ = %v", k.Centroids)
 }
 
@@ -554,7 +444,7 @@ func (k *KMeans) String() string {
 // learning.
 //
 //    model.Guesses[i] = E[k.trainingSet[i]]
-func (k *KMeans) Guesses() []int {
+func (k *TriangleKMeans) Guesses() []int {
 	return k.guesses
 }
 
@@ -564,7 +454,7 @@ func (k *KMeans) Guesses() []int {
 //
 // Distorition() = Σ |x[i] - μ[c[i]]|^2
 // over all training examples
-func (k *KMeans) Distortion() float64 {
+func (k *TriangleKMeans) Distortion() float64 {
 	var sum float64
 	for i := range k.trainingSet {
 		sum += diff(k.trainingSet[i], k.Centroids[int(k.guesses[i])])
@@ -580,7 +470,7 @@ func (k *KMeans) Distortion() float64 {
 //
 // Basically just a wrapper for the base.SaveDataToCSV
 // with the K-Means data.
-func (k *KMeans) SaveClusteredData(filepath string) error {
+func (k *TriangleKMeans) SaveClusteredData(filepath string) error {
 	floatGuesses := []float64{}
 	for _, val := range k.guesses {
 		floatGuesses = append(floatGuesses, float64(val))
@@ -597,7 +487,7 @@ func (k *KMeans) SaveClusteredData(filepath string) error {
 // The data is stored as JSON because it's one of the most
 // efficient storage method (you only need one comma extra
 // per feature + two brackets, total!) And it's extendable.
-func (k *KMeans) PersistToFile(path string) error {
+func (k *TriangleKMeans) PersistToFile(path string) error {
 	if path == "" {
 		return fmt.Errorf("ERROR: you just tried to persist your model to a file with no path!! That's a no-no. Try it with a valid filepath")
 	}
@@ -625,7 +515,7 @@ func (k *KMeans) PersistToFile(path string) error {
 // This would be useful in persisting data between running
 // a model on data, or for graphing a dataset with a fit in
 // another framework like Julia/Gadfly.
-func (k *KMeans) RestoreFromFile(path string) error {
+func (k *TriangleKMeans) RestoreFromFile(path string) error {
 	if path == "" {
 		return fmt.Errorf("ERROR: you just tried to restore your model from a file with no path! That's a no-no. Try it with a valid filepath")
 	}
