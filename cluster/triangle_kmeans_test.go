@@ -33,10 +33,10 @@ func TestComputeCentroidDistanceMatrix1(t *testing.T) {
 	// because it's faster to compute and
 	// relative comparison is the same
 	should := [][]float64{
-		[]float64{0, 72, 10000, 200},
-		[]float64{72, 0, 11272, 272},
-		[]float64{10000, 11272, 0, 8200},
-		[]float64{200, 272, 8200, 0},
+		[]float64{0, 36, 5000, 100},
+		[]float64{36, 0, 5636, 136},
+		[]float64{5000, 5636, 0, 4100},
+		[]float64{100, 136, 4100, 0},
 	}
 
 	mins := []float64{
