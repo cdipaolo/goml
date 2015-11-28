@@ -469,7 +469,7 @@ func TestKMeansPersistToFileShouldPass1(t *testing.T) {
 	fmt.Printf("Accuracy: %v percent\n\tPoints Tested: %v\n\tMisclassifications: %v\n\tClasses: %v\n", accuracy, count, wrong, []float64{c1[0], c2[0]})
 
 	// persist to file!
-	assert.Nil(t, model.PersistToFile("/tmp/.goml/KMeans.csv"), "Persist error should be nil")
+	assert.Nil(t, model.PersistToFile("/tmp/.goml/KMeans.json"), "Persist error should be nil")
 
 	rand.Seed(time.Now().UTC().Unix())
 
@@ -507,7 +507,7 @@ func TestKMeansPersistToFileShouldPass1(t *testing.T) {
 	assert.True(t, 100*(1-float64(wrong)/float64(count)) <= accuracy, "Reset accuracy should not be greater than the trained accuracy")
 
 	// restore from file!
-	assert.Nil(t, model.RestoreFromFile("/tmp/.goml/KMeans.csv"), "Restore error should be nil")
+	assert.Nil(t, model.RestoreFromFile("/tmp/.goml/KMeans.json"), "Restore error should be nil")
 
 	wrong = 0
 	count = 0

@@ -11,6 +11,39 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	gaussian [][]float64
+)
+
+func init() {
+	// set random as constant for gaussian
+	// clusters!
+	rand.Seed(42)
+
+	// 4 2d gaussians
+	gaussian = [][]float64{}
+	for i := 0; i < 40; i++ {
+		x := rand.NormFloat64() + 4
+		y := rand.NormFloat64()*0.25 + 5
+		gaussian = append(gaussian, []float64{x, y})
+	}
+	for i := 0; i < 66; i++ {
+		x := rand.NormFloat64()
+		y := rand.NormFloat64() + 10
+		gaussian = append(gaussian, []float64{x, y})
+	}
+	for i := 0; i < 100; i++ {
+		x := rand.NormFloat64()*3 - 10
+		y := rand.NormFloat64()*0.25 - 7
+		gaussian = append(gaussian, []float64{x, y})
+	}
+	for i := 0; i < 23; i++ {
+		x := rand.NormFloat64() * 2
+		y := rand.NormFloat64() - 1.25
+		gaussian = append(gaussian, []float64{x, y})
+	}
+}
+
 func TestComputeCentroidDistanceMatrix1(t *testing.T) {
 	model := NewTriangleKMeans(4, 2, circles)
 
@@ -262,24 +295,30 @@ func TestTriangleKMeansShouldPass3(t *testing.T) {
 func TestTriangleKMeansPersistToFileShouldPass1(t *testing.T) {
 	var wrong int
 	var count int
-	var c1, c2 []float64
+	var c1, c2, c3, c4 []float64
 	var err error
 
-	model := NewTriangleKMeans(2, 2, double)
+	model := NewTriangleKMeans(4, 10, gaussian)
 
 	assert.Nil(t, model.Learn(), "Learning error should be nil")
 
 	// now predict with the same training set and
 	// make sure the classes are the same within
 	// each block
-	c1, err = model.Predict([]float64{-7.5, 0})
+	c1, err = model.Predict([]float64{-10, -7})
 	assert.Nil(t, err, "Prediction error should be nil")
 
-	c2, err = model.Predict([]float64{7.5, 0})
+	c2, err = model.Predict([]float64{0, -1.25})
 	assert.Nil(t, err, "Prediction error should be nil")
 
-	for i := -10.0; i < -3; i += 0.7 {
-		for j := -10.0; j < 10; j += 0.7 {
+	c3, err = model.Predict([]float64{4, 5})
+	assert.Nil(t, err, "Prediction error should be nil")
+
+	c4, err = model.Predict([]float64{0, 10})
+	assert.Nil(t, err, "Prediction error should be nil")
+
+	for i := -11.0; i < -9; i += 0.1 {
+		for j := -8.0; j < -6; j += 0.1 {
 			guess, err := model.Predict([]float64{i, j})
 			assert.Nil(t, err, "Prediction error should be nil")
 
@@ -290,8 +329,8 @@ func TestTriangleKMeansPersistToFileShouldPass1(t *testing.T) {
 		}
 	}
 
-	for i := 3.0; i < 10; i += 0.7 {
-		for j := -10.0; j < 10; j += 0.7 {
+	for i := -1.0; i < 1; i += 0.1 {
+		for j := -2.0; j < -0.5; j += 0.1 {
 			guess, err := model.Predict([]float64{i, j})
 			assert.Nil(t, err, "Prediction error should be nil")
 
@@ -302,11 +341,35 @@ func TestTriangleKMeansPersistToFileShouldPass1(t *testing.T) {
 		}
 	}
 
+	for i := 3.0; i < 5; i += 0.1 {
+		for j := 4.0; j < 6; j += 0.1 {
+			guess, err := model.Predict([]float64{i, j})
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			if c3[0] != guess[0] {
+				wrong++
+			}
+			count++
+		}
+	}
+
+	for i := -1.0; i < 1; i += 0.1 {
+		for j := 9.0; j < 11; j += 0.1 {
+			guess, err := model.Predict([]float64{i, j})
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			if c4[0] != guess[0] {
+				wrong++
+			}
+			count++
+		}
+	}
+
 	accuracy := 100 * (1 - float64(wrong)/float64(count))
 	fmt.Printf("Accuracy: %v percent\n\tPoints Tested: %v\n\tMisclassifications: %v\n\tClasses: %v\n", accuracy, count, wrong, []float64{c1[0], c2[0]})
 
 	// persist to file!
-	assert.Nil(t, model.PersistToFile("/tmp/.goml/KMeans.csv"), "Persist error should be nil")
+	assert.Nil(t, model.PersistToFile("/tmp/.goml/TriangleKMeans.json"), "Persist error should be nil")
 
 	rand.Seed(time.Now().UTC().Unix())
 
@@ -318,8 +381,8 @@ func TestTriangleKMeansPersistToFileShouldPass1(t *testing.T) {
 
 	wrong = 0
 	count = 0
-	for i := -10.0; i < -3; i += 0.1 {
-		for j := -10.0; j < 10; j += 0.1 {
+	for i := -11.0; i < -9; i += 0.1 {
+		for j := -8.0; j < -6; j += 0.1 {
 			guess, err := model.Predict([]float64{i, j})
 			assert.Nil(t, err, "Prediction error should be nil")
 
@@ -330,8 +393,8 @@ func TestTriangleKMeansPersistToFileShouldPass1(t *testing.T) {
 		}
 	}
 
-	for i := 3.0; i < 10; i += 0.1 {
-		for j := -10.0; j < 10; j += 0.1 {
+	for i := -1.0; i < 1; i += 0.1 {
+		for j := -2.0; j < -0.5; j += 0.1 {
 			guess, err := model.Predict([]float64{i, j})
 			assert.Nil(t, err, "Prediction error should be nil")
 
@@ -341,15 +404,40 @@ func TestTriangleKMeansPersistToFileShouldPass1(t *testing.T) {
 			count++
 		}
 	}
+
+	for i := 3.0; i < 5; i += 0.1 {
+		for j := 4.0; j < 6; j += 0.1 {
+			guess, err := model.Predict([]float64{i, j})
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			if c3[0] != guess[0] {
+				wrong++
+			}
+			count++
+		}
+	}
+
+	for i := -1.0; i < 1; i += 0.1 {
+		for j := 9.0; j < 11; j += 0.1 {
+			guess, err := model.Predict([]float64{i, j})
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			if c4[0] != guess[0] {
+				wrong++
+			}
+			count++
+		}
+	}
+
 	assert.True(t, 100*(1-float64(wrong)/float64(count)) <= accuracy, "Reset accuracy should not be greater than the trained accuracy")
 
 	// restore from file!
-	assert.Nil(t, model.RestoreFromFile("/tmp/.goml/KMeans.csv"), "Restore error should be nil")
+	assert.Nil(t, model.RestoreFromFile("/tmp/.goml/TriangleKMeans.json"), "Restore error should be nil")
 
 	wrong = 0
 	count = 0
-	for i := -10.0; i < -3; i += 0.1 {
-		for j := -10.0; j < 10; j += 0.1 {
+	for i := -11.0; i < -9; i += 0.1 {
+		for j := -8.0; j < -6; j += 0.1 {
 			guess, err := model.Predict([]float64{i, j})
 			assert.Nil(t, err, "Prediction error should be nil")
 
@@ -360,12 +448,36 @@ func TestTriangleKMeansPersistToFileShouldPass1(t *testing.T) {
 		}
 	}
 
-	for i := 3.0; i < 10; i += 0.1 {
-		for j := -10.0; j < 10; j += 0.1 {
+	for i := -1.0; i < 1; i += 0.1 {
+		for j := -2.0; j < -0.5; j += 0.1 {
 			guess, err := model.Predict([]float64{i, j})
 			assert.Nil(t, err, "Prediction error should be nil")
 
 			if c2[0] != guess[0] {
+				wrong++
+			}
+			count++
+		}
+	}
+
+	for i := 3.0; i < 5; i += 0.1 {
+		for j := 4.0; j < 6; j += 0.1 {
+			guess, err := model.Predict([]float64{i, j})
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			if c3[0] != guess[0] {
+				wrong++
+			}
+			count++
+		}
+	}
+
+	for i := -1.0; i < 1; i += 0.1 {
+		for j := 9.0; j < 11; j += 0.1 {
+			guess, err := model.Predict([]float64{i, j})
+			assert.Nil(t, err, "Prediction error should be nil")
+
+			if c4[0] != guess[0] {
 				wrong++
 			}
 			count++
@@ -375,5 +487,5 @@ func TestTriangleKMeansPersistToFileShouldPass1(t *testing.T) {
 	assert.InDelta(t, 100*(1-float64(wrong)/float64(count)), accuracy, 1, "Accuracy Should be Equal")
 
 	// save results to disk
-	assert.Nil(t, model.SaveClusteredData("/tmp/.goml/KMeansResults.csv"), "Save results error should be nil")
+	assert.Nil(t, model.SaveClusteredData("/tmp/.goml/TriangleKMeansResults.csv"), "Save results error should be nil")
 }
