@@ -209,6 +209,7 @@ func NewTriangleKMeans(k, maxIterations int, trainingSet [][]float64) *TriangleK
 
 		trainingSet: trainingSet,
 		guesses:     guesses,
+		info:        info,
 
 		Centroids:       centroids,
 		centroidDist:    centroidDist,
@@ -275,12 +276,16 @@ func (k *TriangleKMeans) Predict(x []float64, normalize ...bool) ([]float64, err
 // computeCentroidDistanceMatrix, as said in the
 // function name, computes the centroid distance
 // matrix, saving it to the model.
+//
+// Note that because we only need 0.5*dist[i][j]
+// in the algorithm, that's what's computed here
+// and not just the distances
 func (k *TriangleKMeans) computeCentroidDistanceMatrix() {
 	// note that we can just compute the lower triangle
 	// and then copy values over to maintain functionality
 	for i := range k.Centroids {
 		for j := 0; j < i; j++ {
-			k.centroidDist[i][j] = diff(k.Centroids[i], k.Centroids[j])
+			k.centroidDist[i][j] = 0.5 * diff(k.Centroids[i], k.Centroids[j])
 		}
 	}
 
@@ -312,10 +317,52 @@ func (k *TriangleKMeans) computeCentroidDistanceMatrix() {
 			}
 		}
 
-		// note that we only want 0.5*min so
-		// we're computing that here.
-		k.minCentroidDist[i] = 0.5 * min
+		k.minCentroidDist[i] = min
 	}
+}
+
+// recalculateCentroids assigns each centroid to
+// the mean of all points assigned to it. This
+// method is abstracted within the Triangle
+// accelerated KMeans variant because you are
+// skipping a lot of distance calculations within
+// the actual algorithm, so finding the mean of
+// assigned points is harder to embed.
+//
+// The method returns the new centers instead of
+// modifying the model's centroids.
+func (k *TriangleKMeans) recalculateCentroids() [][]float64 {
+	classTotal := make([][]float64, len(k.Centroids))
+	classCount := make([]int64, len(k.Centroids))
+
+	for j := range k.Centroids {
+		classTotal[j] = make([]float64, len(k.trainingSet[0]))
+	}
+
+	for i, x := range k.trainingSet {
+		classCount[k.guesses[i]]++
+		for j := range x {
+			classTotal[k.guesses[i]][j] += x[j]
+		}
+	}
+
+	centroids := append([][]float64{}, k.Centroids...)
+	for j := range centroids {
+		// if no objects are in the same class,
+		// reinitialize it to a random vector
+		if classCount[j] == 0 {
+			for l := range centroids[j] {
+				centroids[j][l] = 10 * (rand.Float64() - 0.5)
+			}
+			continue
+		}
+
+		for l := range centroids[j] {
+			centroids[j][l] = classTotal[j][l] / float64(classCount[j])
+		}
+	}
+
+	return centroids
 }
 
 // Learn takes the struct's dataset and expected results and runs
@@ -327,6 +374,12 @@ func (k *TriangleKMeans) computeCentroidDistanceMatrix() {
 // model than regular, randomized instantiation of
 // centroids.
 // Paper: http://ilpubs.stanford.edu:8090/778/1/2006-13.pdf
+//
+// As stated many times for TriangleKMeans (check out the
+// struct comments) this model uses the Triangle Inequality
+// to decrease significantly the number of required distance
+// calculations. The origininal paper is seen here:
+//     http://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf
 func (k *TriangleKMeans) Learn() error {
 	if k.trainingSet == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
@@ -344,7 +397,9 @@ func (k *TriangleKMeans) Learn() error {
 	centroids := len(k.Centroids)
 	features := len(k.trainingSet[0])
 
-	fmt.Printf("Training:\n\tModel: K-Means++ Classification\n\tTraining Examples: %v\n\tFeatures: %v\n\tClasses: %v\n...\n\n", examples, features, centroids)
+	fmt.Printf("Training:\n\tModel: Triangle Inequality Accelerated K-Means++ Classification\n\tTraining Examples: %v\n\tFeatures: %v\n\tClasses: %v\n...\n\n", examples, features, centroids)
+
+	/* Step 0 */
 
 	// instantiate the centroids using k-means++
 	k.Centroids[0] = k.trainingSet[rand.Intn(len(k.trainingSet))]
@@ -371,60 +426,113 @@ func (k *TriangleKMeans) Learn() error {
 			j++
 		}
 		k.Centroids[i] = k.trainingSet[j]
+	}
 
+	/* Step 0.5 */
+
+	// loop over dataset and assign each point to
+	// the closest cluster
+	for i, x := range k.trainingSet {
+		k.guesses[i] = 0
+		minDiff := diff(x, k.Centroids[0])
+		k.info[i].lower[0] = minDiff
+		for j := 1; j < len(k.Centroids); j++ {
+			// avoid redundant distance computations
+			if k.minCentroidDist[j] >= minDiff {
+				continue
+			}
+
+			difference := diff(x, k.Centroids[j])
+			k.info[i].lower[j] = difference
+			if difference < minDiff {
+				minDiff = difference
+				k.guesses[i] = j
+			}
+		}
+
+		// assign upper bound to the distance
+		// to the nearest centroid.
+		k.info[i].upper = minDiff
 	}
 
 	iter := 0
 	for ; iter < k.maxIterations; iter++ {
 
-		// set new guesses
-		//
-		// store counts when assigning classes
-		// so you won't have to sum them again later
-		classTotal := make([][]float64, centroids)
-		classCount := make([]int64, centroids)
+		/* Step 1 */
+		// compute the centroid distance matrix
+		// and minimum distances to adjacent
+		// centroids
+		k.computeCentroidDistanceMatrix()
 
-		for j := range k.Centroids {
-			classTotal[j] = make([]float64, features)
-		}
-
+		var upper float64
 		for i, x := range k.trainingSet {
-			k.guesses[i] = 0
-			minDiff := diff(x, k.Centroids[0])
-			for j := 1; j < len(k.Centroids); j++ {
-				difference := diff(x, k.Centroids[j])
-				if difference < minDiff {
-					minDiff = difference
-					k.guesses[i] = j
-				}
-			}
-
-			classCount[k.guesses[i]]++
-			for j := range x {
-				classTotal[k.guesses[i]][j] += x[j]
-			}
-		}
-
-		newCentroids := append([][]float64{}, k.Centroids...)
-		for j := range k.Centroids {
-			// if no objects are in the same class,
-			// reinitialize it to a random vector
-			if classCount[j] == 0 {
-				for l := range k.Centroids[j] {
-					k.Centroids[j][l] = 10 * (rand.Float64() - 0.5)
-				}
+			upper = k.info[i].upper
+			/* Step 2 */
+			if upper <= k.minCentroidDist[k.guesses[i]] {
 				continue
 			}
 
-			for l := range k.Centroids[j] {
-				k.Centroids[j][l] = classTotal[j][l] / float64(classCount[j])
+			/* Step 3 */
+			for j := range k.Centroids {
+				if j == k.guesses[i] && //                        (i)
+					upper <= k.info[i].lower[j] && //             (ii)
+					upper <= k.centroidDist[k.guesses[i]][j] { // (iii)
+					continue
+				}
+				guess := k.guesses[i]
+
+				/* Step 3.a */
+				// proactively use the otherwise case
+				distToCentroid := upper
+				if k.info[i].recompute {
+					// then recompute the distance to the assigned
+					// centroid
+					distToCentroid = diff(x, k.Centroids[guess])
+					k.info[i].lower[guess] = distToCentroid
+					k.info[i].upper = distToCentroid
+					k.info[i].recompute = false
+				}
+
+				/* Step 3.b */
+				if distToCentroid > k.info[i].lower[j] ||
+					distToCentroid > k.centroidDist[guess][j] {
+					// only now compute the distance to the
+					// centroid
+					dist := diff(x, k.Centroids[j])
+					k.info[i].lower[j] = dist
+					if dist < distToCentroid {
+						k.guesses[i] = j
+
+					}
+				}
 			}
 		}
 
-		// only update if something was deleted
-		if len(newCentroids) != len(k.Centroids) {
-			k.Centroids = newCentroids
+		/* Step 4 */
+		newCentroids := k.recalculateCentroids()
+		for i, _ := range k.trainingSet {
+			/* Step 5 */
+			for j := range k.Centroids {
+				// calculate the shift to the new centroid
+				shift := k.info[i].lower[j] - diff(k.Centroids[j], newCentroids[j])
+
+				// bound the shift at 0 and assign it
+				// as the new lower bound
+				if shift < 0 {
+					shift = 0
+				}
+				k.info[i].lower[j] = shift
+			}
+
+			/* Step 6 */
+			// reassign the upper bound to account
+			// for the centroid shift
+			k.info[i].upper += diff(newCentroids[k.guesses[i]], k.Centroids[k.guesses[i]])
+			k.info[i].recompute = true
 		}
+
+		/* Step 7 */
+		k.Centroids = newCentroids
 	}
 
 	fmt.Printf("Training Completed in %v iterations.\n%v\n", iter, k)
