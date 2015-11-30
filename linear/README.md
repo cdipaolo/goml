@@ -12,8 +12,8 @@ This part of the `goml` package implements varied generalized linear models usin
 - [logistic regression](logistic.go)
 - [softmax regression (multiclass logistic regression)](softmax.go)
 
-Linear Least Squares Regression Results                           | Logistic Regression Classification Results
-------------------------------------------------------------------|-------------------------------------------------------
+Linear Least Squares Regression                                   | Logistic Regression Classification (Color is Ground Truth Class)
+------------------------------------------------------------------|-----------------------------------------------------------------
 ![Linear Least Squares Regression Results](linear_regression.png) | ![Logistic Regression Results](logistic_regression.png)
 
 ### example ordinary least squares
