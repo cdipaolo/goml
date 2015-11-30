@@ -12,6 +12,8 @@ This part of the `goml` package implements varied generalized linear models usin
 - [logistic regression](logistic.go)
 - [softmax regression (multiclass logistic regression)](softmax.go)
 
+![Linear Least Squares Regression Results](linear_regression.png) ![Logistic Regression Results](logistic_regression.png)
+
 ### example ordinary least squares
 
 this is mostly from from the `linear_test.go` tests. You can find more examples from the testing files. The line given is `z = 10 + (x/10) + (y/5)`

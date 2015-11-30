@@ -2,6 +2,7 @@ package linear
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 
@@ -21,6 +22,9 @@ var threeDLineY []float64
 
 var normX [][]float64
 var normY []float64
+
+var noisyX [][]float64
+var noisyY []float64
 
 func init() {
 
@@ -70,6 +74,17 @@ func init() {
 	for i := range normX {
 		normY = append(normY, 10+float64(normX[i][0])/10+float64(normX[i][1])/5)
 	}
+
+	// noisy x has random noise embedded
+	rand.Seed(42)
+	noisyX = [][]float64{}
+	noisyY = []float64{}
+	for i := 256.0; i < 1024; i += 2 {
+		noisyX = append(noisyX, []float64{i + (rand.Float64()-0.5)*3})
+		noisyY = append(noisyY, 0.5*i+rand.NormFloat64()*25)
+	}
+	// save the random data to make some nice plots!
+	base.SaveDataToCSV("/tmp/.goml/noisy_linear.csv", noisyX, noisyY, true)
 }
 
 // test y=3
@@ -551,16 +566,16 @@ func TestOnlineLinearFourDXShouldPass1(t *testing.T) {
 func TestPersistLeastSquaresShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLeastSquares(base.BatchGA, .0001, 0, 500, increasingX, increasingY)
+	model := NewLeastSquares(base.BatchGA, 1e-9, 0, 75, noisyX, noisyY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
 
-	for i := -20; i < 20; i++ {
-		guess, err = model.Predict([]float64{float64(i)})
+	for i := 400.0; i < 600; i++ {
+		guess, err = model.Predict([]float64{i})
 		assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-		assert.InDelta(t, i, guess[0], 1e-2, "Guess should be really close to input (within 1e-2) for y=x")
+		assert.InDelta(t, i*0.5, guess[0], 5, "Guess*2 should be close to input for y=0.5*x")
 		assert.Nil(t, err, "Prediction error should be nil")
 	}
 
@@ -578,8 +593,8 @@ func TestPersistLeastSquaresShouldPass1(t *testing.T) {
 	//
 	// the result of Theta transpose * X should always
 	// be 0 because theta is the zero vector right now.
-	for i := -20; i < 20; i++ {
-		guess, err = model.Predict([]float64{float64(i)})
+	for i := 400.0; i < 600; i++ {
+		guess, err = model.Predict([]float64{i})
 		assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
 		assert.Equal(t, 0.0, guess[0], "Guess should be 0 when theta is the zero vector")
 		assert.Nil(t, err, "Prediction error should be nil")
@@ -588,10 +603,10 @@ func TestPersistLeastSquaresShouldPass1(t *testing.T) {
 	err = model.RestoreFromFile("/tmp/.goml/LeastSquares.json")
 	assert.Nil(t, err, "Persistance error should be nil")
 
-	for i := -20; i < 20; i++ {
-		guess, err = model.Predict([]float64{float64(i)})
+	for i := 400.0; i < 600; i++ {
+		guess, err = model.Predict([]float64{i})
 		assert.Len(t, guess, 1, "Length of a LeastSquares model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-		assert.InDelta(t, i, guess[0], 1e-2, "Guess should be really close to input (within 1e-2) for y=x")
+		assert.InDelta(t, i*0.5, guess[0], 5, "Guess*2 should be close to input for y=0.5*x")
 		assert.Nil(t, err, "Prediction error should be nil")
 	}
 }

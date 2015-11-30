@@ -2,6 +2,7 @@ package linear
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 
@@ -21,6 +22,9 @@ var threeDY []float64
 
 var nX [][]float64
 var nY []float64
+
+var gaussianX [][]float64
+var gaussianY []float64
 
 // tests basically make a bunch of planes where
 // when the input is above the plane the resultant
@@ -90,6 +94,27 @@ func init() {
 			nY = append(nY, 0.0)
 		}
 	}
+
+	// now make gaussian clusters for cool plots!
+	rand.Seed(42)
+	gaussianX = [][]float64{}
+	gaussianY = []float64{}
+
+	for i := 0; i < 100; i++ {
+		gaussianX = append(gaussianX, []float64{
+			rand.NormFloat64()*3 + 10,
+			rand.NormFloat64()*3 + 10,
+		})
+		gaussianY = append(gaussianY, 1.0)
+	}
+	for i := 0; i < 100; i++ {
+		gaussianX = append(gaussianX, []float64{
+			rand.NormFloat64() * 5,
+			rand.NormFloat64() * 5,
+		})
+		gaussianY = append(gaussianY, 0.0)
+	}
+	base.SaveDataToCSV("/tmp/.goml/gaussian_clusters.csv", gaussianX, gaussianY, true)
 }
 
 // test ( 10*i + j/20 + k ) > 0
@@ -771,25 +796,31 @@ func TestOnlineTwoDXNormalizedShouldPass1(t *testing.T) {
 func TestPersistLogisticShouldPass1(t *testing.T) {
 	var err error
 
-	model := NewLogistic(base.BatchGA, .0001, 0, 3500, twoDX, twoDY)
+	model := NewLogistic(base.BatchGA, 1e-2, 0, 350, gaussianX, gaussianY)
 	err = model.Learn()
 	assert.Nil(t, err, "Learning error should be nil")
 
 	var guess []float64
 
-	for i := -40.0; i < 20; i++ {
-		guess, err = model.Predict([]float64{float64(i)})
+	for i := -5.0; i < 5; i += 0.2 {
+		for j := -5.0; j < 5; j += 0.2 {
+			guess, err = model.Predict([]float64{i, j})
+			assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.Nil(t, err, "Prediction error should be nil")
 
-		if i/2+10 > 0 {
-			assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
-			assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
-		} else {
 			assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
-			assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+			assert.True(t, guess[0] >= 0, "Guess should not be below 0 ever")
 		}
+	}
+	for i := 5.0; i < 15; i += 0.2 {
+		for j := 10.0; j < 15; j += 0.2 {
+			guess, err = model.Predict([]float64{i, j})
+			assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.Nil(t, err, "Prediction error should be nil")
 
-		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-		assert.Nil(t, err, "Prediction error should be nil")
+			assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+			assert.True(t, guess[0] < 1.001, "Guess should not be above 1 ever")
+		}
 	}
 
 	// not that we know it works, try persisting to file,
@@ -806,28 +837,34 @@ func TestPersistLogisticShouldPass1(t *testing.T) {
 	//
 	// the result of Theta transpose * X should always
 	// be 0.5 because the probablility is neutral
-	for i := -20; i < 20; i++ {
-		guess, err = model.Predict([]float64{float64(i)})
+	for i := -20.0; i < 20; i++ {
+		guess, err = model.Predict([]float64{i, i})
 		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-		assert.Equal(t, 0.5, guess[0], "Guess should be 0 when theta is the zero vector")
 		assert.Nil(t, err, "Prediction error should be nil")
+		assert.Equal(t, 0.5, guess[0], "Guess should be 0 when theta is the zero vector")
 	}
 
 	err = model.RestoreFromFile("/tmp/.goml/Logistic.json")
 	assert.Nil(t, err, "Persistance error should be nil")
 
-	for i := -40.0; i < 20; i++ {
-		guess, err = model.Predict([]float64{float64(i)})
+	for i := -5.0; i < 5; i += 0.2 {
+		for j := -5.0; j < 5; j += 0.2 {
+			guess, err = model.Predict([]float64{i, j})
+			assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.Nil(t, err, "Prediction error should be nil")
 
-		if i/2+10 > 0 {
-			assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
-			assert.True(t, guess[0] < 1.001, "Guess should not exceed 1 ever")
-		} else {
 			assert.True(t, guess[0] < 0.5, "Guess should be more likely to be 0")
-			assert.True(t, guess[0] > 0.0, "Guess should not be below 0 even")
+			assert.True(t, guess[0] >= 0, "Guess should not be below 0 ever")
 		}
+	}
+	for i := 5.0; i < 15; i += 0.2 {
+		for j := 10.0; j < 15; j += 0.2 {
+			guess, err = model.Predict([]float64{i, j})
+			assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
+			assert.Nil(t, err, "Prediction error should be nil")
 
-		assert.Len(t, guess, 1, "Length of a Logistic model output from the hypothesis should always be a 1 dimensional vector. Never multidimensional.")
-		assert.Nil(t, err, "Prediction error should be nil")
+			assert.True(t, guess[0] > 0.5, "Guess should be more likely to be 1")
+			assert.True(t, guess[0] < 1.001, "Guess should not be above 1 ever")
+		}
 	}
 }
