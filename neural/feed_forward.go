@@ -5,7 +5,15 @@ through channels) and batch methods.
 */
 package neural
 
-import "math/rand"
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"math/rand"
+	"os"
+
+	"github.com/cdipaolo/goml/base"
+)
 
 type FeedForwardNet struct {
 	// learning rate and number of
@@ -111,15 +119,15 @@ func NewFeedForwardNet(features uint8, alpha float64, iterations int, layers []u
 		maxIterations: iterations,
 
 		Features:   features,
-		Layers:     numLayers,
-		Dimensions: layers,
+		Layers:     uint8(numLayers),
+		Dimension:  layers,
 		Transforms: transforms,
 
 		Weights: weights,
 
 		outputs: outputs,
 		sums:    sums,
-		deltas:  deltas,
+		delta:   deltas,
 
 		trainingSet:     trainingSet,
 		expectedResults: expectedResults,
@@ -129,7 +137,7 @@ func NewFeedForwardNet(features uint8, alpha float64, iterations int, layers []u
 // UpdateTrainingSet takes in a new training
 // set and expected results and updates the
 // model's training set, returning any errors.
-func (n *FeedForwardNet) UpdateTrainingSet(trainingSet [][]float64, expectedResults []float64) error {
+func (n *FeedForwardNet) UpdateTrainingSet(trainingSet [][]float64, expectedResults [][]float64) error {
 	if len(trainingSet) == 0 {
 		return fmt.Errorf("Error: length of given training set is 0! Need data!")
 	}
@@ -167,10 +175,23 @@ func (n *FeedForwardNet) MaxIterations() int {
 
 /* Learning and Predicting */
 
-func (n *FeedForwardNet) forward(x []float64) error {
-	if len(x) != n.Features {
-		return fmt.Errorf("Error: x input dimension (%v) does not equal the expcted network feature dimensions (%v)", len(x), n.Features)
+// Predict performs a forward pass of the
+// input through the network and returns the
+// result to the user.
+func (n *FeedForwardNet) Predict(x []float64) ([]float64, error) {
+	if len(x) != int(n.Features) {
+		return nil, fmt.Errorf("Error: x input dimension (%v) does not equal the expcted network feature dimensions (%v)", len(x), n.Features)
 	}
+
+	n.forward(x)
+
+	return n.outputs[n.Layers-1], nil
+}
+
+// forward performs the forward pass of the network,
+// storing intermediate results to perform backpropogation
+// later if there is a label
+func (n *FeedForwardNet) forward(x []float64) {
 
 	// bottom layer takes from input x
 	for j := range n.Weights[0] {
@@ -178,11 +199,132 @@ func (n *FeedForwardNet) forward(x []float64) error {
 		for i := 1; i < len(n.Weights[0][j]); i++ {
 			n.sums[0][j] += x[i-1] * n.Weights[0][j][i]
 		}
+
+		n.outputs[0][j] = n.Transforms[0].F(n.sums[0][j])
 	}
 
 	// other layers take from lower layers
-	for l := 1; l < n.Layers; l++ {
+	for l := 1; l < int(n.Layers); l++ {
+		for j := range n.Weights[l] {
+			n.sums[l][j] = n.Weights[l][j][0]
+			for i := 1; i < len(n.Weights[l][j]); i++ {
+				n.sums[l][j] += n.outputs[l-1][i-1] * n.Weights[l][j][i]
+			}
 
+			n.outputs[l][j] = n.Transforms[l].F(n.sums[l][j])
+		}
+	}
+}
+
+// backwards performs a backwards pass through the
+// network, updating weights and recording deltas.
+//
+// This is an internal step, so inputs are assumed
+// to have the correct dimensions.
+func (n *FeedForwardNet) backwards(x, y []float64) {
+	// first go through last layer
+	for j := 0; j < int(n.Dimension[n.Layers-1]); j++ {
+		n.delta[n.Layers-1][j] = (y[j] - n.outputs[n.Layers-1][j]) * n.Transforms[j].DF(n.sums[n.Layers-1][j])
+	}
+
+	// then go through the rest of the layers
+	for l := n.Layers - 2; l >= 0; l-- {
+		for i := 0; i < int(n.Dimension[l]); i++ {
+			var sum float64
+			dl := n.Transforms[l].DF(n.sums[l][i])
+			for j := 0; j < int(n.Dimension[l+1]); j++ {
+				sum += n.delta[l+1][j] * n.Weights[l+1][j][i]
+			}
+			n.delta[l][i] = sum * dl
+		}
+	}
+
+	// now perform gradient descent on the example
+	for j := 0; j < int(n.Dimension[0]); j++ {
+		n.Weights[0][j][0] -= n.alpha * n.delta[0][j]
+		for i := 0; i < len(n.Weights[0][j]); i++ {
+			n.Weights[0][j][0] -= n.alpha * n.delta[0][j] * x[i]
+		}
+	}
+	for l := 1; l < int(n.Layers); l++ {
+		for j := 0; j < int(n.Dimension[l]); j++ {
+			n.Weights[l][j][0] -= n.alpha * n.delta[l][j]
+			for i := 1; i < len(n.Weights[l][j]); i++ {
+				n.Weights[l][j][i] -= n.alpha * n.delta[l][j] * n.outputs[l-1][i-1]
+			}
+		}
+	}
+}
+
+// Learn takes in a FeedForwardNet and trains it
+// with the pre-assigned dataset and parameters,
+// giving information about the training
+func (n *FeedForwardNet) Learn() error {
+	if n.trainingSet == nil || n.expectedResults == nil {
+		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
+		print(err.Error())
+		return err
+	}
+
+	examples := len(n.trainingSet)
+	if examples == 0 || len(n.trainingSet[0]) == 0 {
+		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
+		print(err.Error())
+		return err
+	}
+	if len(n.expectedResults) == 0 {
+		err := fmt.Errorf("ERROR: Attempting to learn with no expected results!\n")
+		print(err.Error())
+		return err
+	}
+
+	fmt.Printf("Training:\n\tModel: Feedforward Neural Network\n\tOptimization Method: Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n\tTransforms: %v\n\tDimensions: %v\n...\n\n", n.Features, n.alpha, EncodeNonLinearitySlice(n.Transforms), n.Dimension)
+
+	for j := 0; j < n.maxIterations; j++ {
+		for i := range n.trainingSet {
+			n.forward(n.trainingSet[i])
+			n.backwards(n.trainingSet[i], n.expectedResults[i])
+		}
+		if j%15 == 0 {
+			print(".")
+		}
+	}
+
+	fmt.Printf("\n\nTraining Completed in %v iterations! Model:\n%v\n", n.maxIterations, n)
+	return nil
+}
+
+func (n *FeedForwardNet) OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool) {
+	if errors == nil {
+		errors = make(chan error)
+	}
+	if dataset == nil {
+		errors <- fmt.Errorf("ERROR: Attempting to learn with a nil data stream!\n")
+		close(errors)
+		return
+	}
+
+	fmt.Printf("Training:\n\tModel: Feedforward Neural Network\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n\tTransforms: %v\n\tDimensions: %v\n...\n\n", n.Features, n.alpha, EncodeNonLinearitySlice(n.Transforms), n.Dimension)
+
+	var point base.Datapoint
+	var more bool
+
+	for {
+		point, more = <-dataset
+
+		if more {
+			if len(point.Y) != int(n.Dimension[n.Layers-1]) {
+				errors <- fmt.Errorf("ERROR: point.Y must have a length of 1. Point: %v", point)
+			}
+
+			n.forward(point.X)
+			n.backwards(point.X, point.Y)
+
+		} else {
+			fmt.Printf("Training Completed.\n%v\n\n", n)
+			close(errors)
+			return
+		}
 	}
 }
 
@@ -223,7 +365,7 @@ format:
 	MaxIterations: 106
 */
 func (n *FeedForwardNet) String() string {
-	return fmt.Sprintf("Layers: %v\nTransforms: %v\nLearning Rate: %v\nMaxIterations: %v", n.dimension, EncodeNonLinearitySlice(n.transforms), n.alpha, n.maxIterations)
+	return fmt.Sprintf("Layers: %v\nTransforms: %v\nLearning Rate: %v\nMaxIterations: %v", n.Dimension, EncodeNonLinearitySlice(n.Transforms), n.alpha, n.maxIterations)
 }
 
 // PersistToFile takes in a filepath and stores
@@ -271,7 +413,7 @@ func (n *FeedForwardNet) RestoreFromFile(path string) error {
 	n.Layers = restored.Layers
 	n.Dimension = restored.Dimension
 	n.Transforms = restored.Transforms
-	n.Features = restores.Features
+	n.Features = restored.Features
 
 	return nil
 }

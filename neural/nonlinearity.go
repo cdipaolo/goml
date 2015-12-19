@@ -14,6 +14,8 @@ const (
 	Identity
 )
 
+// F evaluates a NonLinearity with it's
+// respective function
 func (n NonLinearity) F(x float64) float64 {
 	switch n {
 	case ReLu:
@@ -24,6 +26,21 @@ func (n NonLinearity) F(x float64) float64 {
 		return TanhF(x)
 	case Identity:
 		return IdentityF(x)
+	}
+}
+
+// DF returns the derivative of a
+// NonLinearity at a given point.
+func (n NonLinearity) DF(x float64) float64 {
+	switch n {
+	case ReLu:
+		return ReLuDF(x)
+	case Sigmoid:
+		return SigmoidDF(x)
+	case Tanh:
+		return TanhDF(x)
+	case Identity:
+		return IdentityDF(x)
 	}
 }
 
