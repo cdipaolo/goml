@@ -27,6 +27,7 @@ func (n NonLinearity) F(x float64) float64 {
 	case Identity:
 		return IdentityF(x)
 	}
+	return 0.0
 }
 
 // DF returns the derivative of a
@@ -42,6 +43,7 @@ func (n NonLinearity) DF(x float64) float64 {
 	case Identity:
 		return IdentityDF(x)
 	}
+	return 0.0
 }
 
 // String converts a NonLinearity
@@ -57,6 +59,7 @@ func (n NonLinearity) String() string {
 	case Identity:
 		return "Identity"
 	}
+	return ""
 }
 
 func EncodeNonLinearitySlice(n []NonLinearity) []string {

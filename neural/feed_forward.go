@@ -99,7 +99,7 @@ func NewFeedForwardNet(features uint8, alpha float64, iterations int, layers []u
 			// instantiate.Weights randomly
 			// weights in [-1.0, 1.0]
 			for i := range weights[l][j] {
-				weights[l][j][i] = (rand.Float64()*2 - 1.0)
+				weights[l][j][i] = 2 * (rand.Float64()*2 - 1.0)
 			}
 		}
 	}
@@ -194,7 +194,7 @@ func (n *FeedForwardNet) Predict(x []float64) ([]float64, error) {
 func (n *FeedForwardNet) forward(x []float64) {
 
 	// bottom layer takes from input x
-	for j := range n.Weights[0] {
+	for j := 0; j < int(n.Dimension[0]); j++ {
 		n.sums[0][j] = n.Weights[0][j][0]
 		for i := 1; i < len(n.Weights[0][j]); i++ {
 			n.sums[0][j] += x[i-1] * n.Weights[0][j][i]
@@ -205,7 +205,7 @@ func (n *FeedForwardNet) forward(x []float64) {
 
 	// other layers take from lower layers
 	for l := 1; l < int(n.Layers); l++ {
-		for j := range n.Weights[l] {
+		for j := 0; j < int(n.Dimension[l]); j++ {
 			n.sums[l][j] = n.Weights[l][j][0]
 			for i := 1; i < len(n.Weights[l][j]); i++ {
 				n.sums[l][j] += n.outputs[l-1][i-1] * n.Weights[l][j][i]
@@ -224,18 +224,20 @@ func (n *FeedForwardNet) forward(x []float64) {
 func (n *FeedForwardNet) backwards(x, y []float64) {
 	// first go through last layer
 	for j := 0; j < int(n.Dimension[n.Layers-1]); j++ {
-		n.delta[n.Layers-1][j] = (y[j] - n.outputs[n.Layers-1][j]) * n.Transforms[j].DF(n.sums[n.Layers-1][j])
+		n.delta[n.Layers-1][j] = (y[j] - n.outputs[n.Layers-1][j]) * n.Transforms[n.Layers-1].DF(n.outputs[n.Layers-1][j])
 	}
 
 	// then go through the rest of the layers
-	for l := n.Layers - 2; l >= 0; l-- {
-		for i := 0; i < int(n.Dimension[l]); i++ {
-			var sum float64
-			dl := n.Transforms[l].DF(n.sums[l][i])
-			for j := 0; j < int(n.Dimension[l+1]); j++ {
-				sum += n.delta[l+1][j] * n.Weights[l+1][j][i]
+	if n.Layers > 1 {
+		for l := int(n.Layers - 2); l >= 0; l-- {
+			for i := 0; i < int(n.Dimension[l]); i++ {
+				var sum float64
+				dl := n.Transforms[l].DF(n.outputs[l][i])
+				for j := 0; j < int(n.Dimension[l+1]); j++ {
+					sum += n.delta[l][j] * n.Weights[l+1][j][i]
+				}
+				n.delta[l][i] = sum * dl
 			}
-			n.delta[l][i] = sum * dl
 		}
 	}
 
@@ -254,6 +256,64 @@ func (n *FeedForwardNet) backwards(x, y []float64) {
 			}
 		}
 	}
+}
+
+// ComputeDerivative computes the actual derivative
+// of the cost function with respect to the i-th
+// weight in the j-th neuron in the l-th layer
+func (n *FeedForwardNet) ComputeDerivative(i, j, l int, x, y []float64) float64 {
+	n.forward(x)
+
+	// first go through last layer
+	for j := 0; j < int(n.Dimension[n.Layers-1]); j++ {
+		n.delta[n.Layers-1][j] = (n.outputs[n.Layers-1][j] - y[j]) * n.Transforms[j].DF(n.sums[n.Layers-1][j])
+	}
+
+	// then go through the rest of the layers
+	if n.Layers > 1 {
+		for l := int(n.Layers - 2); l >= 0; l-- {
+			for i := 0; i < int(n.Dimension[l]); i++ {
+				var sum float64
+				dl := n.Transforms[l].DF(n.outputs[l][i])
+				for j := 0; j < int(n.Dimension[l+1]); j++ {
+					sum += n.delta[l+1][j] * n.Weights[l+1][j][i]
+				}
+				n.delta[l][i] = sum * dl
+			}
+		}
+	}
+
+	if i == 0 {
+		print("\n\ni==0\n")
+		return n.delta[l][j]
+	}
+	if l == 0 {
+		print("\n\nl == 0\n")
+		return n.delta[0][j] * x[i-1]
+	}
+	print("\n\nlast\n")
+	return n.delta[l][j] * n.outputs[l-1][i-1]
+}
+
+// ComputeNumericalDerivative computes the derivative
+// of the cost function with respect to the i-th
+// weight in the j-th neuron in the l-th layer
+func (n *FeedForwardNet) ComputeNumericalDerivative(i, j, l int, x, y []float64, epsilon float64) float64 {
+	n.Weights[l][j][i] += epsilon
+	right, err := n.Cost(x, y)
+	if err != nil {
+		return 0.0
+	}
+
+	n.Weights[l][j][i] -= 2 * epsilon
+	left, err := n.Cost(x, y)
+	if err != nil {
+		return 0.0
+	}
+	fmt.Printf("\n\nRIGHT: %v\nLEFT: %v\nd = %v\n", right, left, (right-left)/(2*epsilon))
+
+	n.Weights[l][j][i] += epsilon
+	return (right - left) / (2 * epsilon)
 }
 
 // Learn takes in a FeedForwardNet and trains it
@@ -351,6 +411,22 @@ func (n *FeedForwardNet) J() (float64, error) {
 		sum += er
 	}
 	return sum / float64(2*len(n.trainingSet)), nil
+}
+
+// Cost computes the cost function J() on
+// one point (used in numerical gradient computation)
+func (n *FeedForwardNet) Cost(x, y []float64) (float64, error) {
+	prediction, err := n.Predict(x)
+	if err != nil {
+		return 0, err
+	}
+
+	er := 0.0
+	for j := range y {
+		miss := y[j] - prediction[j]
+		er += miss * miss
+	}
+	return er / 2, nil
 }
 
 /* Encoding */
