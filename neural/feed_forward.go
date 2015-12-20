@@ -259,69 +259,6 @@ func (n *FeedForwardNet) backwards(x, y []float64) {
 	}
 }
 
-/*
-	BEGIN DERIVATIVE CHECKING CODE
-	    (used for debugging)
-*/
-
-// computeDerivative computes the actual derivative
-// of the cost function with respect to the i-th
-// weight in the j-th neuron in the l-th layer
-func (n *FeedForwardNet) computeDerivative(i, j, l int, x, y []float64) float64 {
-	n.forward(x)
-
-	// first go through last layer
-	for j := 0; j < int(n.Dimension[n.Layers-1]); j++ {
-		n.delta[n.Layers-1][j] = (n.outputs[n.Layers-1][j] - y[j]) * n.Transforms[n.Layers-1].DF(n.outputs[n.Layers-1][j])
-	}
-
-	// then go through the rest of the layers
-	if n.Layers > 1 {
-		for l := int(n.Layers - 2); l >= 0; l-- {
-			for i := 0; i < int(n.Dimension[l]); i++ {
-				var sum float64
-				dl := n.Transforms[l].DF(n.outputs[l][i])
-				for j := 0; j < int(n.Dimension[l+1]); j++ {
-					sum += n.delta[l+1][j] * n.Weights[l+1][j][i+1]
-				}
-				n.delta[l][i] = sum * dl
-			}
-		}
-	}
-
-	if i == 0 {
-		return n.delta[l][j]
-	}
-	if l == 0 {
-		return n.delta[0][j] * x[i-1]
-	}
-	return n.delta[l][j] * n.outputs[l-1][i-1]
-}
-
-// computeNumericalDerivative computes the derivative
-// of the cost function with respect to the i-th
-// weight in the j-th neuron in the l-th layer
-func (n *FeedForwardNet) computeNumericalDerivative(i, j, l int, x, y []float64, epsilon float64) float64 {
-	n.Weights[l][j][i] += epsilon
-	right, err := n.Cost(x, y)
-	if err != nil {
-		return 0.0
-	}
-
-	n.Weights[l][j][i] -= 2 * epsilon
-	left, err := n.Cost(x, y)
-	if err != nil {
-		return 0.0
-	}
-
-	n.Weights[l][j][i] += epsilon
-	return (right - left) / (2 * epsilon)
-}
-
-/*
-	END DERIVATIVE CHECKING CODE
-*/
-
 // Learn takes in a FeedForwardNet and trains it
 // with the pre-assigned dataset and parameters,
 // giving information about the training
@@ -499,3 +436,66 @@ func (n *FeedForwardNet) RestoreFromFile(path string) error {
 
 	return nil
 }
+
+/*
+	BEGIN DERIVATIVE CHECKING CODE
+	    (used for debugging)
+*/
+
+// computeDerivative computes the actual derivative
+// of the cost function with respect to the i-th
+// weight in the j-th neuron in the l-th layer
+func (n *FeedForwardNet) computeDerivative(i, j, l int, x, y []float64) float64 {
+	n.forward(x)
+
+	// first go through last layer
+	for j := 0; j < int(n.Dimension[n.Layers-1]); j++ {
+		n.delta[n.Layers-1][j] = (n.outputs[n.Layers-1][j] - y[j]) * n.Transforms[n.Layers-1].DF(n.outputs[n.Layers-1][j])
+	}
+
+	// then go through the rest of the layers
+	if n.Layers > 1 {
+		for l := int(n.Layers - 2); l >= 0; l-- {
+			for i := 0; i < int(n.Dimension[l]); i++ {
+				var sum float64
+				dl := n.Transforms[l].DF(n.outputs[l][i])
+				for j := 0; j < int(n.Dimension[l+1]); j++ {
+					sum += n.delta[l+1][j] * n.Weights[l+1][j][i+1]
+				}
+				n.delta[l][i] = sum * dl
+			}
+		}
+	}
+
+	if i == 0 {
+		return n.delta[l][j]
+	}
+	if l == 0 {
+		return n.delta[0][j] * x[i-1]
+	}
+	return n.delta[l][j] * n.outputs[l-1][i-1]
+}
+
+// computeNumericalDerivative computes the derivative
+// of the cost function with respect to the i-th
+// weight in the j-th neuron in the l-th layer
+func (n *FeedForwardNet) computeNumericalDerivative(i, j, l int, x, y []float64, epsilon float64) float64 {
+	n.Weights[l][j][i] += epsilon
+	right, err := n.Cost(x, y)
+	if err != nil {
+		return 0.0
+	}
+
+	n.Weights[l][j][i] -= 2 * epsilon
+	left, err := n.Cost(x, y)
+	if err != nil {
+		return 0.0
+	}
+
+	n.Weights[l][j][i] += epsilon
+	return (right - left) / (2 * epsilon)
+}
+
+/*
+	END DERIVATIVE CHECKING CODE
+*/
