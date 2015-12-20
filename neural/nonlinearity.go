@@ -31,17 +31,24 @@ func (n NonLinearity) F(x float64) float64 {
 }
 
 // DF returns the derivative of a
-// NonLinearity at a given point.
+// NonLinearity given the output of
+// the nonlinearity. (this is convenient
+// for the backpropogation implementation)
+//
+// Again -> x is the OUTPUT of NonLinearity.F()
 func (n NonLinearity) DF(x float64) float64 {
 	switch n {
 	case ReLu:
-		return ReLuDF(x)
+		if x > 0 {
+			return 1
+		}
+		return 0
 	case Sigmoid:
-		return SigmoidDF(x)
+		return x * (1 - x)
 	case Tanh:
-		return TanhDF(x)
+		return 1 - x*x
 	case Identity:
-		return IdentityDF(x)
+		return x
 	}
 	return 0.0
 }
