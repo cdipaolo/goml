@@ -106,7 +106,7 @@ func TestNetworkOutputsShouldPass1(t *testing.T) {
 }
 
 /* Test gradient computations! */
-const gradEpsilon = 1e-3
+const gradEpsilon = 1e-6
 
 type coord struct {
 	i int

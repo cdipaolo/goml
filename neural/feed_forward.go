@@ -57,11 +57,7 @@ type FeedForwardNet struct {
 	//
 	// outputs[j][l] is the output
 	// of the j-th neuron in the l-th layer
-	//
-	// sums[j][l] is the input of the j-th
-	// neuron in the l-th layer
 	outputs [][]float64
-	sums    [][]float64
 
 	// delta is the error backpropogated
 	// during training. delta[j][l] is
@@ -105,12 +101,10 @@ func NewFeedForwardNet(features uint64, alpha float64, iterations int, layers []
 	}
 
 	outputs := make([][]float64, numLayers)
-	sums := make([][]float64, numLayers)
 	deltas := make([][]float64, numLayers)
 	for i := range outputs {
 		layer := layers[i]
 		outputs[i] = make([]float64, layer)
-		sums[i] = make([]float64, layer)
 		deltas[i] = make([]float64, layer)
 	}
 
@@ -126,7 +120,6 @@ func NewFeedForwardNet(features uint64, alpha float64, iterations int, layers []
 		Weights: weights,
 
 		outputs: outputs,
-		sums:    sums,
 		delta:   deltas,
 
 		trainingSet:     trainingSet,
