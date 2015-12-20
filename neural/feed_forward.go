@@ -267,7 +267,7 @@ func (n *FeedForwardNet) computeDerivative(i, j, l int, x, y []float64) float64 
 
 	// first go through last layer
 	for j := 0; j < int(n.Dimension[n.Layers-1]); j++ {
-		n.delta[n.Layers-1][j] = (n.outputs[n.Layers-1][j] - y[j]) * n.Transforms[j].DF(n.outputs[n.Layers-1][j])
+		n.delta[n.Layers-1][j] = (n.outputs[n.Layers-1][j] - y[j]) * n.Transforms[n.Layers-1].DF(n.outputs[n.Layers-1][j])
 	}
 
 	// then go through the rest of the layers
@@ -277,7 +277,7 @@ func (n *FeedForwardNet) computeDerivative(i, j, l int, x, y []float64) float64 
 				var sum float64
 				dl := n.Transforms[l].DF(n.outputs[l][i])
 				for j := 0; j < int(n.Dimension[l+1]); j++ {
-					sum += n.delta[l+1][j] * n.Weights[l+1][j][i]
+					sum += n.delta[l+1][j] * n.Weights[l+1][j][i+1]
 				}
 				n.delta[l][i] = sum * dl
 			}
