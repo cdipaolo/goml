@@ -235,7 +235,7 @@ func (n *FeedForwardNet) backwards(x, y []float64) {
 				var sum float64
 				dl := n.Transforms[l].DF(n.outputs[l][i])
 				for j := 0; j < int(n.Dimension[l+1]); j++ {
-					sum += n.delta[l][j] * n.Weights[l+1][j][i]
+					sum += n.delta[l+1][j] * n.Weights[l+1][j][i+1]
 				}
 				n.delta[l][i] = sum * dl
 			}
@@ -245,8 +245,8 @@ func (n *FeedForwardNet) backwards(x, y []float64) {
 	// now perform gradient descent on the example
 	for j := 0; j < int(n.Dimension[0]); j++ {
 		n.Weights[0][j][0] -= n.alpha * n.delta[0][j]
-		for i := 0; i < len(n.Weights[0][j]); i++ {
-			n.Weights[0][j][0] -= n.alpha * n.delta[0][j] * x[i]
+		for i := 1; i < len(n.Weights[0][j]); i++ {
+			n.Weights[0][j][i] -= n.alpha * n.delta[0][j] * x[i-1]
 		}
 	}
 	for l := 1; l < int(n.Layers); l++ {
@@ -258,6 +258,11 @@ func (n *FeedForwardNet) backwards(x, y []float64) {
 		}
 	}
 }
+
+/*
+	BEGIN DERIVATIVE CHECKING CODE
+	    (used for debugging)
+*/
 
 // computeDerivative computes the actual derivative
 // of the cost function with respect to the i-th
@@ -312,6 +317,10 @@ func (n *FeedForwardNet) computeNumericalDerivative(i, j, l int, x, y []float64,
 	n.Weights[l][j][i] += epsilon
 	return (right - left) / (2 * epsilon)
 }
+
+/*
+	END DERIVATIVE CHECKING CODE
+*/
 
 // Learn takes in a FeedForwardNet and trains it
 // with the pre-assigned dataset and parameters,

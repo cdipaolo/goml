@@ -203,3 +203,5 @@ func TestGradientComputationShouldPass(t *testing.T) {
 		}
 	}
 }
+
+/* Test Model in Batch Mode */
