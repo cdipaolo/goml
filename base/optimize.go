@@ -52,8 +52,6 @@ func GradientAscent(d Ascendable) error {
 		}
 	}
 
-	fmt.Printf("Went through %v iterations.\n", iter+1)
-
 	return nil
 }
 
@@ -113,8 +111,6 @@ func StochasticGradientAscent(d StochasticAscendable) error {
 			}
 		}
 	}
-
-	fmt.Printf("Went through %v iterations.\n", iter+1)
 
 	return nil
 }

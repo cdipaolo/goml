@@ -16,8 +16,6 @@ func Normalize(x [][]float64) {
 	for i := range x {
 		NormalizePoint(x[i])
 	}
-
-	fmt.Printf("Normalized < %v > data points by dividing by unit length\n", len(x))
 }
 
 // NormalizePoint is the same as Normalize,
