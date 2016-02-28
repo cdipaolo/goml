@@ -3,6 +3,7 @@ package cluster
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -133,6 +134,11 @@ type KMeans struct {
 	guesses     []int
 
 	Centroids [][]float64 `json:"centroids"`
+
+	// Output is the io.Writer to write
+	// logging to. Defaults to os.Stdout
+	// but can be changed to any io.Writer
+	Output io.Writer
 }
 
 // OnlineParams is used to pass optional
@@ -190,6 +196,7 @@ func NewKMeans(k, maxIterations int, trainingSet [][]float64, params ...OnlinePa
 		guesses:     guesses,
 
 		Centroids: centroids,
+		Output:    os.Stdout,
 	}
 }
 
@@ -275,21 +282,21 @@ func (k *KMeans) Predict(x []float64, normalize ...bool) ([]float64, error) {
 func (k *KMeans) Learn() error {
 	if k.trainingSet == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(k.Output, err.Error())
 		return err
 	}
 
 	examples := len(k.trainingSet)
 	if examples == 0 || len(k.trainingSet[0]) == 0 {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(k.Output, err.Error())
 		return err
 	}
 
 	centroids := len(k.Centroids)
 	features := len(k.trainingSet[0])
 
-	fmt.Printf("Training:\n\tModel: K-Means++ Classification\n\tTraining Examples: %v\n\tFeatures: %v\n\tClasses: %v\n...\n\n", examples, features, centroids)
+	fmt.Fprintf(k.Output, "Training:\n\tModel: K-Means++ Classification\n\tTraining Examples: %v\n\tFeatures: %v\n\tClasses: %v\n...\n\n", examples, features, centroids)
 
 	// instantiate the centroids using k-means++
 	k.Centroids[0] = k.trainingSet[rand.Intn(len(k.trainingSet))]
@@ -372,7 +379,7 @@ func (k *KMeans) Learn() error {
 		}
 	}
 
-	fmt.Printf("Training Completed in %v iterations.\n%v\n", iter, k)
+	fmt.Fprintf(k.Output, "Training Completed in %v iterations.\n%v\n", iter, k)
 
 	return nil
 }
@@ -499,7 +506,7 @@ func (k *KMeans) OnlineLearn(errors chan error, dataset chan base.Datapoint, onU
 	centroids := len(k.Centroids)
 	features := len(k.Centroids[0])
 
-	fmt.Printf("Training:\n\tModel: Online K-Means Classification\n\tFeatures: %v\n\tClasses: %v\n...\n\n", features, centroids)
+	fmt.Fprintf(k.Output, "Training:\n\tModel: Online K-Means Classification\n\tFeatures: %v\n\tClasses: %v\n...\n\n", features, centroids)
 
 	var point base.Datapoint
 	var more bool
@@ -531,7 +538,7 @@ func (k *KMeans) OnlineLearn(errors chan error, dataset chan base.Datapoint, onU
 			go onUpdate([][]float64{[]float64{float64(c)}, k.Centroids[c]})
 
 		} else {
-			fmt.Printf("Training Completed.\n%v\n\n", k)
+			fmt.Fprintf(k.Output, "Training Completed.\n%v\n\n", k)
 			close(errors)
 			return
 		}

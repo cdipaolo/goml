@@ -3,6 +3,7 @@ package cluster
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -146,6 +147,10 @@ type TriangleKMeans struct {
 	// calculations
 	centroidDist    [][]float64
 	minCentroidDist []float64
+
+	// Output is the io.Writer to write logs
+	// and output from training to
+	Output io.Writer
 }
 
 // pointInfo stores information needed to use
@@ -214,6 +219,8 @@ func NewTriangleKMeans(k, maxIterations int, trainingSet [][]float64) *TriangleK
 		Centroids:       centroids,
 		centroidDist:    centroidDist,
 		minCentroidDist: minCentroidDist,
+
+		Output: os.Stdout,
 	}
 }
 
@@ -383,21 +390,21 @@ func (k *TriangleKMeans) recalculateCentroids() [][]float64 {
 func (k *TriangleKMeans) Learn() error {
 	if k.trainingSet == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(k.Output, err.Error())
 		return err
 	}
 
 	examples := len(k.trainingSet)
 	if examples == 0 || len(k.trainingSet[0]) == 0 {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(k.Output, err.Error())
 		return err
 	}
 
 	centroids := len(k.Centroids)
 	features := len(k.trainingSet[0])
 
-	fmt.Printf("Training:\n\tModel: Triangle Inequality Accelerated K-Means++ Classification\n\tTraining Examples: %v\n\tFeatures: %v\n\tClasses: %v\n...\n\n", examples, features, centroids)
+	fmt.Fprintf(k.Output, "Training:\n\tModel: Triangle Inequality Accelerated K-Means++ Classification\n\tTraining Examples: %v\n\tFeatures: %v\n\tClasses: %v\n...\n\n", examples, features, centroids)
 
 	/* Step 0 */
 
@@ -535,7 +542,7 @@ func (k *TriangleKMeans) Learn() error {
 		k.Centroids = newCentroids
 	}
 
-	fmt.Printf("Training Completed in %v iterations.\n%v\n", iter, k)
+	fmt.Fprintf(k.Output, "Training Completed in %v iterations.\n%v\n", iter, k)
 
 	return nil
 }
