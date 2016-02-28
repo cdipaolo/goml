@@ -43,7 +43,7 @@
 //      model := NewPerceptron(0.1, 1, stream)
 //
 //      go model.OnlineLearn(errors, stream, func (theta []float64) {
-//          fmt.Printf("Theta updated to %v!\n", theta)
+//          fmt.Fprintf(p.Output, "Theta updated to %v!\n", theta)
 //      })
 //
 //      // start passing data to our datastream
@@ -74,7 +74,7 @@
 //      for {
 //          err, more := <- errors
 //          if err != nil {
-//              fmt.Printf("Error passed: %v", err)
+//              fmt.Fprintf(p.Output, "Error passed: %v", err)
 //          } else {
 //              // training is done!
 //              break
@@ -94,6 +94,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -142,6 +143,10 @@ type Perceptron struct {
 	alpha float64
 
 	Parameters []float64 `json:"theta"`
+
+	// Output is the io.Writer used for logging
+	// and printing. Defaults to os.Stdout.
+	Output io.Writer
 }
 
 // NewPerceptron takes in a learning rate alpha, the
@@ -168,6 +173,7 @@ func NewPerceptron(alpha float64, features int) *Perceptron {
 		// initialize θ as the zero vector (that is,
 		// the vector of all zeros)
 		Parameters: params,
+		Output:     os.Stdout,
 	}
 }
 
@@ -257,7 +263,7 @@ func (p *Perceptron) Predict(x []float64, normalize ...bool) ([]float64, error) 
 //      go model.OnlineLearn(errors, stream, func (theta []float64) {
 //          // do something with the new theta (persist
 //          // to database?) in here.
-//          fmt.Printf("Theta updated to %v!\n", theta)
+//          fmt.Fprintf(p.Output, "Theta updated to %v!\n", theta)
 //      })
 //
 //      // start passing data to our datastream
@@ -288,7 +294,7 @@ func (p *Perceptron) Predict(x []float64, normalize ...bool) ([]float64, error) 
 //      for {
 //          err, more := <- errors
 //          if err != nil {
-//              fmt.Printf("Error passed: %v", err)
+//              fmt.Fprintf(p.Output, "Error passed: %v", err)
 //          } else {
 //              // training is done!
 //              break
@@ -312,7 +318,7 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 		return
 	}
 
-	fmt.Printf("Training:\n\tModel: Perceptron Classifier\n\tOptimization Method: Online Perceptron\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(p.Parameters), p.alpha)
+	fmt.Fprintf(p.Output, "Training:\n\tModel: Perceptron Classifier\n\tOptimization Method: Online Perceptron\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(p.Parameters), p.alpha)
 
 	norm := len(normalize) != 0 && normalize[0]
 
@@ -365,7 +371,7 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 			}
 
 		} else {
-			fmt.Printf("Training Completed.\n%v\n\n", p)
+			fmt.Fprintf(p.Output, "Training Completed.\n%v\n\n", p)
 			close(errors)
 			return
 		}
@@ -382,7 +388,7 @@ func (p *Perceptron) OnlineLearn(errors chan error, dataset chan base.Datapoint,
 func (p *Perceptron) String() string {
 	features := len(p.Parameters) - 1
 	if len(p.Parameters) == 0 {
-		fmt.Printf("ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
+		fmt.Fprintf(p.Output, "ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
 	}
 	var buffer bytes.Buffer
 

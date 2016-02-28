@@ -3,6 +3,7 @@ package perceptron
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -52,6 +53,10 @@ type KernelPerceptron struct {
 	SV []base.Datapoint `json:"support_vectors,omitempty"`
 
 	Kernel func([]float64, []float64) float64
+
+	// Output is the io.Writer used for logging
+	// and printing. Defaults to os.Stdout.
+	Output io.Writer
 }
 
 // NewKernelPerceptron takes in a learning rate alpha, the
@@ -74,6 +79,7 @@ type KernelPerceptron struct {
 func NewKernelPerceptron(kernel func([]float64, []float64) float64) *KernelPerceptron {
 	return &KernelPerceptron{
 		Kernel: kernel,
+		Output: os.Stdout,
 	}
 }
 
@@ -218,7 +224,7 @@ func (p *KernelPerceptron) OnlineLearn(errors chan error, dataset chan base.Data
 		errors = make(chan error)
 	}
 
-	fmt.Printf("Training:\n\tModel: Kernel Perceptron Classifier\n\tOptimization Method: Online Kernel Perceptron\n...\n\n")
+	fmt.Fprintf(p.Output, "Training:\n\tModel: Kernel Perceptron Classifier\n\tOptimization Method: Online Kernel Perceptron\n...\n\n")
 
 	norm := len(normalize) != 0 && normalize[0]
 
@@ -262,7 +268,7 @@ func (p *KernelPerceptron) OnlineLearn(errors chan error, dataset chan base.Data
 			}
 
 		} else {
-			fmt.Printf("Training Completed.\n%v\n\n", p)
+			fmt.Fprintf(p.Output, "Training Completed.\n%v\n\n", p)
 			close(errors)
 			return
 		}
