@@ -53,6 +53,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -92,6 +93,10 @@ type LeastSquares struct {
 	expectedResults []float64
 
 	Parameters []float64 `json:"theta"`
+
+	// Output is the io.Writer used for logging
+	// and printing. Defaults to os.Stdout.
+	Output io.Writer
 }
 
 // NewLeastSquares returns a pointer to the linear model
@@ -148,6 +153,8 @@ func NewLeastSquares(method base.OptimizationMethod, alpha, regularization float
 		// initialize θ as the zero vector (that is,
 		// the vector of all zeros)
 		Parameters: params,
+
+		Output: os.Stdout,
 	}
 }
 
@@ -229,23 +236,23 @@ func (l *LeastSquares) Predict(x []float64, normalize ...bool) ([]float64, error
 func (l *LeastSquares) Learn() error {
 	if l.trainingSet == nil || l.expectedResults == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(l.Output, err.Error())
 		return err
 	}
 
 	examples := len(l.trainingSet)
 	if examples == 0 || len(l.trainingSet[0]) == 0 {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(l.Output, err.Error())
 		return err
 	}
 	if len(l.expectedResults) == 0 {
 		err := fmt.Errorf("ERROR: Attempting to learn with no expected results! This isn't an unsupervised model!! You'll need to include data before you learn :)\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(l.Output, err.Error())
 		return err
 	}
 
-	fmt.Printf("Training:\n\tModel: Logistic (Binary) Classification\n\tOptimization Method: %v\n\tTraining Examples: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", l.method, examples, len(l.trainingSet[0]), l.alpha, l.regularization)
+	fmt.Fprintf(l.Output, "Training:\n\tModel: Logistic (Binary) Classification\n\tOptimization Method: %v\n\tTraining Examples: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", l.method, examples, len(l.trainingSet[0]), l.alpha, l.regularization)
 
 	var err error
 	if l.method == base.BatchGA {
@@ -257,11 +264,11 @@ func (l *LeastSquares) Learn() error {
 	}
 
 	if err != nil {
-		fmt.Printf("\nERROR: Error while learning –\n\t%v\n\n", err)
+		fmt.Fprintf(l.Output, "\nERROR: Error while learning –\n\t%v\n\n", err)
 		return err
 	}
 
-	fmt.Printf("Training Completed.\n%v\n\n", l)
+	fmt.Fprintf(l.Output, "Training Completed.\n%v\n\n", l)
 	return nil
 }
 
@@ -368,7 +375,7 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 		return
 	}
 
-	fmt.Printf("Training:\n\tModel: Ordinary Least Squares Regression\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)
+	fmt.Fprintf(l.Output, "Training:\n\tModel: Ordinary Least Squares Regression\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", len(l.Parameters), l.alpha)
 
 	var point base.Datapoint
 	var more bool
@@ -439,7 +446,7 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 			go onUpdate([][]float64{l.Parameters})
 
 		} else {
-			fmt.Printf("Training Completed.\n%v\n\n", l)
+			fmt.Fprintf(l.Output, "Training Completed.\n%v\n\n", l)
 			close(errors)
 			return
 		}
@@ -452,7 +459,7 @@ func (l *LeastSquares) OnlineLearn(errors chan error, dataset chan base.Datapoin
 func (l *LeastSquares) String() string {
 	features := len(l.Parameters) - 1
 	if len(l.Parameters) == 0 {
-		fmt.Printf("ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
+		fmt.Fprintf(l.Output, "ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
 	}
 	var buffer bytes.Buffer
 

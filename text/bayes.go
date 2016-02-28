@@ -59,7 +59,7 @@ Example Online Naive Bayes Text Classifier (multiclass):
 	for {
 		err, more := <- errors
 		if err != nil {
-			fmt.Printf("Error passed: %v", err)
+			fmt.Fprintf(b.Output, "Error passed: %v", err)
 		} else {
 			// training is done!
 			break
@@ -74,6 +74,7 @@ package text
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -153,6 +154,10 @@ type NaiveBayes struct {
 
 	// stream holds the datastream
 	stream <-chan base.TextDatapoint
+
+	// Output is the io.Writer used for logging
+	// and printing. Defaults to os.Stdout.
+	Output io.Writer
 }
 
 // Word holds the structural
@@ -193,6 +198,8 @@ func NewNaiveBayes(stream <-chan base.TextDatapoint, classes uint8, sanitize fun
 
 		sanitize: transform.RemoveFunc(sanitize),
 		stream:   stream,
+
+		Output: os.Stdout,
 	}
 }
 
@@ -295,7 +302,7 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 		return
 	}
 
-	fmt.Printf("Training:\n\tModel: Multinomial Naïve Bayes\n\tClasses: %v\n", len(b.Count))
+	fmt.Fprintf(b.Output, "Training:\n\tModel: Multinomial Naïve Bayes\n\tClasses: %v\n", len(b.Count))
 
 	var point base.TextDatapoint
 	var more bool
@@ -359,7 +366,7 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 				b.Words[term] = tmp
 			}
 		} else {
-			fmt.Printf("Training Completed.\n%v\n\n", b)
+			fmt.Fprintf(b.Output, "Training Completed.\n%v\n\n", b)
 			close(errors)
 			return
 		}

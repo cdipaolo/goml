@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -55,6 +56,10 @@ type Softmax struct {
 	expectedResults []float64
 
 	Parameters [][]float64 `json:"theta"`
+
+	// Output is the io.Writer used for logging
+	// and printing. Defaults to os.Stdout.
+	Output io.Writer
 }
 
 func abs(x float64) float64 {
@@ -103,6 +108,8 @@ func NewSoftmax(method base.OptimizationMethod, alpha, regularization float64, k
 		// initialize θ as the zero vector (that is,
 		// the vector of all zeros)
 		Parameters: params,
+
+		Output: os.Stdout,
 	}
 }
 
@@ -191,23 +198,23 @@ func (s *Softmax) Predict(x []float64, normalize ...bool) ([]float64, error) {
 func (s *Softmax) Learn() error {
 	if s.trainingSet == nil || s.expectedResults == nil {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(s.Output, err.Error())
 		return err
 	}
 
 	examples := len(s.trainingSet)
 	if examples == 0 || len(s.trainingSet[0]) == 0 {
 		err := fmt.Errorf("ERROR: Attempting to learn with no training examples!\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(s.Output, err.Error())
 		return err
 	}
 	if len(s.expectedResults) == 0 {
 		err := fmt.Errorf("ERROR: Attempting to learn with no expected results! This isn't an unsupervised model!! You'll need to include data before you learn :)\n")
-		fmt.Printf(err.Error())
+		fmt.Fprintf(s.Output, err.Error())
 		return err
 	}
 
-	fmt.Printf("Training:\n\tModel: Softmax Classification\n\tOptimization Method: %v\n\tTraining Examples: %v\n\t Classification Dimensions: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", s.method, examples, s.k, len(s.trainingSet[0]), s.alpha, s.regularization)
+	fmt.Fprintf(s.Output, "Training:\n\tModel: Softmax Classification\n\tOptimization Method: %v\n\tTraining Examples: %v\n\t Classification Dimensions: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", s.method, examples, s.k, len(s.trainingSet[0]), s.alpha, s.regularization)
 
 	var err error
 	if s.method == base.BatchGA {
@@ -246,7 +253,7 @@ func (s *Softmax) Learn() error {
 				s.Parameters = newTheta
 			}
 
-			fmt.Printf("Went through %v iterations.\n", iter)
+			fmt.Fprintf(s.Output, "Went through %v iterations.\n", iter)
 
 			return nil
 		}()
@@ -287,7 +294,7 @@ func (s *Softmax) Learn() error {
 				}
 			}
 
-			fmt.Printf("Went through %v iterations.\n", iter)
+			fmt.Fprintf(s.Output, "Went through %v iterations.\n", iter)
 
 			return nil
 		}()
@@ -296,11 +303,11 @@ func (s *Softmax) Learn() error {
 	}
 
 	if err != nil {
-		fmt.Printf("\nERROR: Error while learning –\n\t%v\n\n", err)
+		fmt.Fprintf(s.Output, "\nERROR: Error while learning –\n\t%v\n\n", err)
 		return err
 	}
 
-	fmt.Printf("Training Completed.\n%v\n\n", s)
+	fmt.Fprintf(s.Output, "Training Completed.\n%v\n\n", s)
 	return nil
 }
 
@@ -422,7 +429,7 @@ func (s *Softmax) OnlineLearn(errors chan error, dataset chan base.Datapoint, on
 		return
 	}
 
-	fmt.Printf("Training:\n\tModel: Softmax Classifier (%v classes)\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", s.k, len(s.Parameters), s.alpha)
+	fmt.Fprintf(s.Output, "Training:\n\tModel: Softmax Classifier (%v classes)\n\tOptimization Method: Online Stochastic Gradient Descent\n\tFeatures: %v\n\tLearning Rate α: %v\n...\n\n", s.k, len(s.Parameters), s.alpha)
 
 	norm := len(normalize) != 0 && normalize[0]
 	var point base.Datapoint
@@ -507,7 +514,7 @@ func (s *Softmax) OnlineLearn(errors chan error, dataset chan base.Datapoint, on
 			go onUpdate(s.Parameters)
 
 		} else {
-			fmt.Printf("Training Completed.\n%v\n\n", s)
+			fmt.Fprintf(s.Output, "Training Completed.\n%v\n\n", s)
 			close(errors)
 			return
 		}
@@ -519,7 +526,7 @@ func (s *Softmax) OnlineLearn(errors chan error, dataset chan base.Datapoint, on
 // where h is the softmax hypothesis model
 func (s *Softmax) String() string {
 	if len(s.Parameters) == 0 {
-		fmt.Printf("ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
+		fmt.Fprintf(s.Output, "ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
 	}
 	var buffer bytes.Buffer
 

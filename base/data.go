@@ -49,7 +49,6 @@ func LoadDataFromCSV(filepath string) ([][]float64, []float64, error) {
 		return nil, nil, err
 	}
 
-	fmt.Printf("Loading Data From CSV <%v>\n", filepath)
 	// parse until the end of the file
 	for err != io.EOF {
 		var row []float64
@@ -76,7 +75,6 @@ func LoadDataFromCSV(filepath string) ([][]float64, []float64, error) {
 		return nil, nil, fmt.Errorf("ERROR: Training set has no valid examples (either for x or y or both)")
 	}
 
-	fmt.Printf("Finished Loading Data From <%v>\n\tTraining Examples: %v\n\tFeatures: %v\n", filepath, len(y), len(x[0]))
 	return x, y, nil
 }
 
@@ -122,7 +120,6 @@ func LoadDataFromCSVToStream(filepath string, data chan Datapoint, errors chan e
 		return
 	}
 
-	fmt.Printf("Loading Data From CSV <%v> Into Data Channel\n", filepath)
 	// parse until the end of the file
 	for err != io.EOF {
 		var row []float64
@@ -148,8 +145,6 @@ func LoadDataFromCSVToStream(filepath string, data chan Datapoint, errors chan e
 
 		record, err = reader.Read()
 	}
-
-	fmt.Printf("Finished Loading Data From <%v> Into Data Channel\n\tClosing error channel\n\tClosing data channel\n", filepath)
 
 	close(errors)
 	close(data)
@@ -201,7 +196,6 @@ func SaveDataToCSV(filepath string, x [][]float64, y []float64, highPrecision bo
 	writer := csv.NewWriter(file)
 	records := [][]string{}
 
-	fmt.Printf("Writing Data To <%v>\n\tTraining Examples: %v\n\tFeatures: %v\n", filepath, len(x), len(x[0]))
 	// parse until the end of the file
 	for i := range x {
 		record := []string{}
@@ -221,6 +215,5 @@ func SaveDataToCSV(filepath string, x [][]float64, y []float64, highPrecision bo
 		return err
 	}
 
-	fmt.Printf("Finished Writing Data To <%v>\n\n", filepath)
 	return nil
 }

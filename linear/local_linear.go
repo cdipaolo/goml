@@ -3,7 +3,9 @@ package linear
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"math"
+	"os"
 
 	"github.com/cdipaolo/goml/base"
 )
@@ -100,6 +102,10 @@ type LocalLinear struct {
 	expectedResults []float64
 
 	Parameters []float64 `json:"theta"`
+
+	// Output is the io.Writer used for logging
+	// and printing. Defaults to os.Stdout.
+	Output io.Writer
 }
 
 // NewLocalLinear returns a pointer to the linear model
@@ -156,6 +162,8 @@ func NewLocalLinear(method base.OptimizationMethod, alpha, regularization, bandw
 		// initialize θ as the zero vector (that is,
 		// the vector of all zeros)
 		Parameters: params,
+
+		Output: os.Stdout,
 	}
 }
 
@@ -242,7 +250,7 @@ func (l *LocalLinear) Predict(x []float64, normalize ...bool) ([]float64, error)
 		return nil, err
 	}
 
-	fmt.Printf("Training:\n\tModel: Locally Weighted Linear Regression\n\tOptimization Method: %v\n\tCenter Point: %v\n\tTraining Examples: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", l.method, x, examples, len(l.trainingSet[0]), l.alpha, l.regularization)
+	fmt.Fprintf(l.Output, "Training:\n\tModel: Locally Weighted Linear Regression\n\tOptimization Method: %v\n\tCenter Point: %v\n\tTraining Examples: %v\n\tFeatures: %v\n\tLearning Rate α: %v\n\tRegularization Parameter λ: %v\n...\n\n", l.method, x, examples, len(l.trainingSet[0]), l.alpha, l.regularization)
 
 	var iter int
 	features := len(l.Parameters)
@@ -295,7 +303,7 @@ func (l *LocalLinear) Predict(x []float64, normalize ...bool) ([]float64, error)
 		return nil, fmt.Errorf("Chose a training method not implemented for LocalLinear regression")
 	}
 
-	fmt.Printf("Training Completed. Went through %v iterations.\n%v\n\n", iter, l)
+	fmt.Fprintf(l.Output, "Training Completed. Went through %v iterations.\n%v\n\n", iter, l)
 
 	// include constant term in sum
 	sum := l.Parameters[0]
@@ -313,7 +321,7 @@ func (l *LocalLinear) Predict(x []float64, normalize ...bool) ([]float64, error)
 func (l *LocalLinear) String() string {
 	features := len(l.Parameters) - 1
 	if len(l.Parameters) == 0 {
-		fmt.Printf("ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
+		fmt.Fprintf(l.Output, "ERROR: Attempting to print model with the 0 vector as it's parameter vector! Train first!\n")
 	}
 	var buffer bytes.Buffer
 
