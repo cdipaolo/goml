@@ -146,8 +146,8 @@ type KMeans struct {
 // model if you want to learn using the
 // online version of the model
 type OnlineParams struct {
-	alpha    float64
-	features int
+	Alpha    float64
+	Features int
 }
 
 // NewKMeans returns a pointer to the k-means
@@ -163,14 +163,14 @@ type OnlineParams struct {
 func NewKMeans(k, maxIterations int, trainingSet [][]float64, params ...OnlineParams) *KMeans {
 	var features int
 	if len(params) != 0 {
-		features = params[0].features
+		features = params[0].Features
 	} else if len(trainingSet) != 0 {
 		features = len(trainingSet[0])
 	}
 
 	alpha := 0.5
 	if len(params) != 0 {
-		alpha = params[0].alpha
+		alpha = params[0].Alpha
 	}
 
 	// start all guesses with the zero vector.
