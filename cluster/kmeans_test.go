@@ -273,8 +273,8 @@ func TestOnlineKMeansShouldPass1(t *testing.T) {
 	errors := make(chan error, 20)
 
 	model := NewKMeans(4, 0, nil, OnlineParams{
-		alpha:    0.5,
-		features: 4,
+		Alpha:    0.5,
+		Features: 4,
 	})
 
 	go model.OnlineLearn(errors, stream, func(theta [][]float64) {})
