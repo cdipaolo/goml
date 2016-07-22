@@ -79,10 +79,11 @@ import (
 	"math"
 	"os"
 	"strings"
+	"sync"
 
 	"golang.org/x/text/transform"
 
-	"github.com/cdipaolo/goml/base"
+	"github.com/piazzamp/goml/base"
 )
 
 /*
@@ -129,7 +130,7 @@ type NaiveBayes struct {
 	// Words holds a map of words
 	// to their corresponding Word
 	// structure
-	Words map[string]Word `json:"words"`
+	Words histogram `json:"words"`
 
 	// Count holds the number of times
 	// class i was seen as Count[i]
@@ -158,6 +159,30 @@ type NaiveBayes struct {
 	// Output is the io.Writer used for logging
 	// and printing. Defaults to os.Stdout.
 	Output io.Writer
+}
+
+// histogram allows conncurrency-friendly map access via its
+// exported Get and Set methods
+type histogram struct {
+	sync.RWMutex
+	words map[string]Word
+}
+
+// Get looks up a word from h's Word map, it should be used in
+// place of a direct map lookup
+// the only caveat here is that it will always return the 'success' boolean
+func (h *histogram) Get(w string) (Word, bool) {
+	h.RLock()
+	result, ok := h.words[w]
+	h.RUnlock()
+	return result, ok
+}
+
+// Set sets word k's value to v in h's Word map
+func (h *histogram) Set(k string, v Word) {
+	h.Lock()
+	h.words[k] = v
+	h.Unlock()
 }
 
 // Word holds the structural
@@ -192,7 +217,7 @@ type Word struct {
 // comply with the transform.RemoveFunc interface
 func NewNaiveBayes(stream <-chan base.TextDatapoint, classes uint8, sanitize func(rune) bool) *NaiveBayes {
 	return &NaiveBayes{
-		Words:         make(map[string]Word),
+		Words:         histogram{sync.RWMutex{}, make(map[string]Word)},
 		Count:         make([]uint64, classes),
 		Probabilities: make([]float64, classes),
 
@@ -211,14 +236,15 @@ func (b *NaiveBayes) Predict(sentence string) uint8 {
 	sums := make([]float64, len(b.Count))
 
 	sentence, _, _ = transform.String(b.sanitize, sentence)
-	w := strings.Split(strings.ToLower(sentence), " ")
-	for _, word := range w {
-		if _, ok := b.Words[word]; !ok {
+	words := strings.Split(strings.ToLower(sentence), " ")
+	for _, word := range words {
+		w, ok := b.Words.Get(word)
+		if !ok {
 			continue
 		}
 
 		for i := range sums {
-			sums[i] += math.Log(float64(b.Words[word].Count[i]+1) / float64(b.Words[word].Seen+b.DictCount))
+			sums[i] += math.Log(float64(w.Count[i]+1) / float64(w.Seen+b.DictCount))
 		}
 	}
 
@@ -261,14 +287,15 @@ func (b *NaiveBayes) Probability(sentence string) (uint8, float64) {
 	}
 
 	sentence, _, _ = transform.String(b.sanitize, sentence)
-	w := strings.Split(strings.ToLower(sentence), " ")
-	for _, word := range w {
-		if _, ok := b.Words[word]; !ok {
+	words := strings.Split(strings.ToLower(sentence), " ")
+	for _, word := range words {
+		w, ok := b.Words.Get(word)
+		if !ok {
 			continue
 		}
 
 		for i := range sums {
-			sums[i] *= float64(b.Words[word].Count[i]+1) / float64(b.Words[word].Seen+b.DictCount)
+			sums[i] *= float64(w.Count[i]+1) / float64(w.Seen+b.DictCount)
 		}
 	}
 
@@ -340,7 +367,7 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 					continue
 				}
 
-				w, ok := b.Words[word]
+				w, ok := b.Words.Get(word)
 
 				if !ok {
 					w = Word{
@@ -354,16 +381,16 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 				w.Count[C]++
 				w.Seen++
 
-				b.Words[word] = w
+				b.Words.Set(word, w)
 
 				seenCount[word] = 1
 			}
 
 			// add to DocsSeen
 			for term := range seenCount {
-				tmp := b.Words[term]
+				tmp, _ := b.Words.Get(term)
 				tmp.DocsSeen++
-				b.Words[term] = tmp
+				b.Words.Set(term, tmp)
 			}
 		} else {
 			fmt.Fprintf(b.Output, "Training Completed.\n%v\n\n", b)
