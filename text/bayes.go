@@ -130,7 +130,7 @@ type NaiveBayes struct {
 	// Words holds a map of words
 	// to their corresponding Word
 	// structure
-	Words histogram `json:"words"`
+	Words concurrentMap `json:"words"`
 
 	// Count holds the number of times
 	// class i was seen as Count[i]
@@ -161,17 +161,17 @@ type NaiveBayes struct {
 	Output io.Writer
 }
 
-// histogram allows conncurrency-friendly map access via its
-// exported Get and Set methods
-type histogram struct {
+// concurrentMap allows concurrency-friendly map
+// access via its exported Get and Set methods
+type concurrentMap struct {
 	sync.RWMutex
 	words map[string]Word
 }
 
-// Get looks up a word from h's Word map, it should be used in
-// place of a direct map lookup
-// the only caveat here is that it will always return the 'success' boolean
-func (h *histogram) Get(w string) (Word, bool) {
+// Get looks up a word from h's Word map and should be used
+// in place of a direct map lookup. The only caveat is that
+// it will always return the 'success' boolean
+func (h *concurrentMap) Get(w string) (Word, bool) {
 	h.RLock()
 	result, ok := h.words[w]
 	h.RUnlock()
@@ -179,7 +179,7 @@ func (h *histogram) Get(w string) (Word, bool) {
 }
 
 // Set sets word k's value to v in h's Word map
-func (h *histogram) Set(k string, v Word) {
+func (h *concurrentMap) Set(k string, v Word) {
 	h.Lock()
 	h.words[k] = v
 	h.Unlock()
@@ -217,7 +217,7 @@ type Word struct {
 // comply with the transform.RemoveFunc interface
 func NewNaiveBayes(stream <-chan base.TextDatapoint, classes uint8, sanitize func(rune) bool) *NaiveBayes {
 	return &NaiveBayes{
-		Words:         histogram{sync.RWMutex{}, make(map[string]Word)},
+		Words:         concurrentMap{sync.RWMutex{}, make(map[string]Word)},
 		Count:         make([]uint64, classes),
 		Probabilities: make([]float64, classes),
 

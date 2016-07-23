@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/cdipaolo/goml/base"
@@ -227,4 +229,54 @@ func TestPersistPerceptronShouldPass1(t *testing.T) {
 
 	class = model.Predict("My mother is in Los Angeles") // 0
 	assert.EqualValues(t, 1, class, "Class should be 0")
+}
+
+// make sure that calling predict while the model is still training does
+// not cause a runtime panic because of concurrent map reads & writes
+func TestConcurrentPredictionAndLearningShouldNotFail(t *testing.T) {
+	c := make(chan base.TextDatapoint, 100)
+	model := NewNaiveBayes(c, 2, base.OnlyWords)
+	errors := make(chan error)
+
+	// fill the buffer
+	var i uint8
+	for i = 0; i < 99; i++ {
+		c <- base.TextDatapoint{
+			X: strings.Repeat("a whole bunch of words that will take some time to iterate through", 50),
+			Y: i % 2,
+		}
+	}
+
+	// spin off a "long" running loop of predicting
+	// and then start another goroutine for OnlineLearn
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// fmt.Println("beginning predicting")
+		for i := 0; i < 500; i++ {
+			model.Predict(strings.Repeat("some stuff that might be in the training data like iterate", 25))
+		}
+		// fmt.Println("done predicting")
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// fmt.Println("beginning learning")
+		model.OnlineLearn(errors)
+		// fmt.Println("done learning")
+	}()
+
+	go func() {
+		for err, more := <-errors; more; err, more = <-errors {
+			if err != nil {
+				t.Logf("Error passed: %s\n", err.Error())
+				t.Fail()
+			}
+		}
+	}()
+
+	close(c)
+	wg.Wait()
 }
