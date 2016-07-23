@@ -173,5 +173,6 @@ func TermFrequencies(document []string) Frequencies {
 // Look at the TFIDF docs to see more about how
 // this is calculated
 func (t *TFIDF) InverseDocumentFrequency(word string) float64 {
-	return math.Log(float64(t.DocumentCount)) - math.Log(float64(t.Words[word].DocsSeen)+1)
+	w, _ := t.Words.Get(word)
+	return math.Log(float64(t.DocumentCount)) - math.Log(float64(w.DocsSeen)+1)
 }
