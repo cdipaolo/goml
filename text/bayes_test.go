@@ -253,19 +253,15 @@ func TestConcurrentPredictionAndLearningShouldNotFail(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// fmt.Println("beginning predicting")
 		for i := 0; i < 500; i++ {
 			model.Predict(strings.Repeat("some stuff that might be in the training data like iterate", 25))
 		}
-		// fmt.Println("done predicting")
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// fmt.Println("beginning learning")
 		model.OnlineLearn(errors)
-		// fmt.Println("done learning")
 	}()
 
 	go func() {
