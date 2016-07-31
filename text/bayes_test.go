@@ -74,7 +74,7 @@ func TestExampleClassificationShouldPass1(t *testing.T) {
 	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is negative - Given %v", p)
 
 	class, p = model.Probability("Love the CiTy")
-	assert.EqualValues(t, 1, class, "Class should be 0")
+	assert.EqualValues(t, 1, class, "Class should be 1")
 	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
 }
 
@@ -275,4 +275,84 @@ func TestConcurrentPredictionAndLearningShouldNotFail(t *testing.T) {
 
 	close(c)
 	wg.Wait()
+}
+
+//* Test Persitance To File *//
+func TestPersistNaiveBayesShouldPass1(t *testing.T) {
+	var err error
+
+	// create the channel of data and errors
+	stream := make(chan base.TextDatapoint, 100)
+	errors := make(chan error)
+
+	// make a new NaiveBayes model with
+	// 2 classes expected (classes in
+	// datapoints will now expect {0,1}.
+	// in general, given n as the classes
+	// variable, the model will expect
+	// datapoint classes in {0,...,n-1})
+	model := NewNaiveBayes(stream, 3, base.OnlyWordsAndNumbers)
+
+	go model.OnlineLearn(errors)
+
+	for i := 1; i < 10; i++ {
+		stream <- base.TextDatapoint{
+			X: "I love the city",
+			Y: 1,
+		}
+
+		stream <- base.TextDatapoint{
+			X: "I hate Los Angeles",
+			Y: 0,
+		}
+	}
+
+	close(stream)
+
+	for {
+		err, more := <-errors
+		if more {
+			fmt.Printf("Error passed: %v", err)
+		} else {
+			// training is done!
+			break
+		}
+	}
+
+	// now you can predict like normal
+	class := model.Predict("My mo~~~ther is in Los Angeles") // 0
+	assert.EqualValues(t, 0, class, "Class should be 0")
+
+	// test small document classification
+	class, p := model.Probability("Mother Los Angeles")
+	assert.EqualValues(t, 0, class, "Class should be 0")
+	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is negative - Given %v", p)
+
+	class, p = model.Probability("Love the CiTy")
+	assert.EqualValues(t, 1, class, "Class should be 1")
+	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
+
+	// persist to file
+	err = model.PersistToFile("/tmp/.goml/Bayes.json")
+	assert.Nil(t, err, "Persistance error should be nil")
+
+	model.Words = concurrentMap{}
+
+	class, p = model.Probability("Mother Los Angeles")
+	assert.Equal(t, p, 0.5, "With a blank model the prediction should be 0.5 for both classes", p)
+
+	// restore from file
+	err = model.RestoreFromFile("/tmp/.goml/Bayes.json")
+	assert.Nil(t, err, "Persistance error should be nil")
+
+	class = model.Predict("My mo~~~ther is in Los Angeles") // 0
+	assert.EqualValues(t, 0, class, "Class should be 0")
+
+	class, p = model.Probability("Mother Los Angeles")
+	assert.EqualValues(t, 0, class, "Class should be 0")
+	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is negative - Given %v", p)
+
+	class, p = model.Probability("Love the CiTy")
+	assert.EqualValues(t, 1, class, "Class should be 1")
+	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
 }

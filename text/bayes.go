@@ -158,7 +158,7 @@ type NaiveBayes struct {
 
 	// Output is the io.Writer used for logging
 	// and printing. Defaults to os.Stdout.
-	Output io.Writer
+	Output io.Writer `json:"-"`
 }
 
 // concurrentMap allows concurrency-friendly map
@@ -168,21 +168,36 @@ type concurrentMap struct {
 	words map[string]Word
 }
 
+func (m *concurrentMap) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.words)
+}
+
+func (m *concurrentMap) UnmarshalJSON(data []byte) error {
+	err := json.Unmarshal(data, &m.words)
+	if err != nil {
+		return err
+	}
+
+	m.RWMutex = sync.RWMutex{}
+
+	return nil
+}
+
 // Get looks up a word from h's Word map and should be used
 // in place of a direct map lookup. The only caveat is that
 // it will always return the 'success' boolean
-func (h *concurrentMap) Get(w string) (Word, bool) {
-	h.RLock()
-	result, ok := h.words[w]
-	h.RUnlock()
+func (m *concurrentMap) Get(w string) (Word, bool) {
+	m.RLock()
+	result, ok := m.words[w]
+	m.RUnlock()
 	return result, ok
 }
 
 // Set sets word k's value to v in h's Word map
-func (h *concurrentMap) Set(k string, v Word) {
-	h.Lock()
-	h.words[k] = v
-	h.Unlock()
+func (m *concurrentMap) Set(k string, v Word) {
+	m.Lock()
+	m.words[k] = v
+	m.Unlock()
 }
 
 // Word holds the structural
@@ -207,7 +222,7 @@ type Word struct {
 	// DocsSeen is the same as Seen but
 	// a word is only counted once even
 	// if it's in a document multiple times
-	DocsSeen uint64
+	DocsSeen uint64 `json:"-"`
 }
 
 // NewNaiveBayes returns a NaiveBayes model the
