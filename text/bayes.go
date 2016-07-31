@@ -168,17 +168,17 @@ type concurrentMap struct {
 	words map[string]Word
 }
 
-func (h *concurrentMap) MarshalJSON() ([]byte, error) {
-	return json.Marshal(h.words)
+func (m *concurrentMap) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.words)
 }
 
-func (h *concurrentMap) UnmarshalJSON(data []byte) error {
-	err := json.Unmarshal(data, &h.words)
+func (m *concurrentMap) UnmarshalJSON(data []byte) error {
+	err := json.Unmarshal(data, &m.words)
 	if err != nil {
 		return err
 	}
 
-	h.RWMutex = sync.RWMutex{}
+	m.RWMutex = sync.RWMutex{}
 
 	return nil
 }
@@ -186,18 +186,18 @@ func (h *concurrentMap) UnmarshalJSON(data []byte) error {
 // Get looks up a word from h's Word map and should be used
 // in place of a direct map lookup. The only caveat is that
 // it will always return the 'success' boolean
-func (h *concurrentMap) Get(w string) (Word, bool) {
-	h.RLock()
-	result, ok := h.words[w]
-	h.RUnlock()
+func (m *concurrentMap) Get(w string) (Word, bool) {
+	m.RLock()
+	result, ok := m.words[w]
+	m.RUnlock()
 	return result, ok
 }
 
 // Set sets word k's value to v in h's Word map
-func (h *concurrentMap) Set(k string, v Word) {
-	h.Lock()
-	h.words[k] = v
-	h.Unlock()
+func (m *concurrentMap) Set(k string, v Word) {
+	m.Lock()
+	m.words[k] = v
+	m.Unlock()
 }
 
 // Word holds the structural
