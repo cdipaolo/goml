@@ -158,7 +158,7 @@ type NaiveBayes struct {
 
 	// Output is the io.Writer used for logging
 	// and printing. Defaults to os.Stdout.
-	Output io.Writer
+	Output io.Writer `json:"-"`
 }
 
 // concurrentMap allows concurrency-friendly map
@@ -166,6 +166,21 @@ type NaiveBayes struct {
 type concurrentMap struct {
 	sync.RWMutex
 	words map[string]Word
+}
+
+func (h *concurrentMap) MarshalJSON() ([]byte, error) {
+	return json.Marshal(h.words)
+}
+
+func (h *concurrentMap) UnmarshalJSON(data []byte) error {
+	err := json.Unmarshal(data, &h.words)
+	if err != nil {
+		return err
+	}
+
+	h.RWMutex = sync.RWMutex{}
+
+	return nil
 }
 
 // Get looks up a word from h's Word map and should be used
@@ -207,7 +222,7 @@ type Word struct {
 	// DocsSeen is the same as Seen but
 	// a word is only counted once even
 	// if it's in a document multiple times
-	DocsSeen uint64
+	DocsSeen uint64 `json:"-"`
 }
 
 // NewNaiveBayes returns a NaiveBayes model the
