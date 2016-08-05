@@ -178,8 +178,6 @@ func (m *concurrentMap) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	m.RWMutex = sync.RWMutex{}
-
 	return nil
 }
 
