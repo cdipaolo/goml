@@ -356,3 +356,62 @@ func TestPersistNaiveBayesShouldPass1(t *testing.T) {
 	assert.EqualValues(t, 1, class, "Class should be 1")
 	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
 }
+
+func TestTokenizer(t *testing.T) {
+	stream := make(chan base.TextDatapoint, 100)
+	errors := make(chan error)
+
+	// This is a somewhat contrived test case since splitting on commas is
+	// probably not very useful, but it is designed to purely test the
+	// tokenizer. A more useful, but too complicated test case would be to use
+	// a tokenizer that does something like porter stemming.
+	model := NewNaiveBayes(stream, 3, func(rune) bool {
+		// do not filter out commas
+		return false
+	})
+	model.UpdateTokenizer(func(input string) []string {
+		return strings.Split(strings.ToLower(input), ",")
+	})
+
+	go model.OnlineLearn(errors)
+
+	stream <- base.TextDatapoint{
+		X: "I,love,the,city",
+		Y: 1,
+	}
+
+	stream <- base.TextDatapoint{
+		X: "I,hate,Los,Angeles",
+		Y: 0,
+	}
+
+	stream <- base.TextDatapoint{
+		X: "My,mother,is,not,a,nice,lady",
+		Y: 0,
+	}
+
+	close(stream)
+
+	for {
+		err, more := <-errors
+		if more {
+			fmt.Printf("Error passed: %v", err)
+		} else {
+			// training is done!
+			break
+		}
+	}
+
+	// now you can predict like normal
+	class := model.Predict("My,mo~~~ther,is,in,Los,Angeles") // 0
+	assert.EqualValues(t, 0, class, "Class should be 0")
+
+	// test small document classification
+	class, p := model.Probability("Mother,Los,Angeles")
+	assert.EqualValues(t, 0, class, "Class should be 0")
+	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is negative - Given %v", p)
+
+	class, p = model.Probability("Love,the,CiTy")
+	assert.EqualValues(t, 1, class, "Class should be 1")
+	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
+}

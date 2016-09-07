@@ -156,9 +156,21 @@ type NaiveBayes struct {
 	// stream holds the datastream
 	stream <-chan base.TextDatapoint
 
+	// tokenizer is used by a model
+	// to split the input into tokens
+	tokenize Tokenizer
+
 	// Output is the io.Writer used for logging
 	// and printing. Defaults to os.Stdout.
 	Output io.Writer `json:"-"`
+}
+
+// Tokenizer accepts a sentence as input and breaks
+// it down into a slice of tokens
+type Tokenizer func(string) []string
+
+func spaceTokenizer(input string) []string {
+	return strings.Split(strings.ToLower(input), " ")
 }
 
 // concurrentMap allows concurrency-friendly map
@@ -236,6 +248,7 @@ func NewNaiveBayes(stream <-chan base.TextDatapoint, classes uint8, sanitize fun
 
 		sanitize: transform.RemoveFunc(sanitize),
 		stream:   stream,
+		tokenize: spaceTokenizer,
 
 		Output: os.Stdout,
 	}
@@ -249,7 +262,7 @@ func (b *NaiveBayes) Predict(sentence string) uint8 {
 	sums := make([]float64, len(b.Count))
 
 	sentence, _, _ = transform.String(b.sanitize, sentence)
-	words := strings.Split(strings.ToLower(sentence), " ")
+	words := b.tokenize(sentence)
 	for _, word := range words {
 		w, ok := b.Words.Get(word)
 		if !ok {
@@ -300,7 +313,7 @@ func (b *NaiveBayes) Probability(sentence string) (uint8, float64) {
 	}
 
 	sentence, _, _ = transform.String(b.sanitize, sentence)
-	words := strings.Split(strings.ToLower(sentence), " ")
+	words := b.tokenize(sentence)
 	for _, word := range words {
 		w, ok := b.Words.Get(word)
 		if !ok {
@@ -353,9 +366,7 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 		if more {
 			// sanitize and break up document
 			sanitized, _, _ := transform.String(b.sanitize, point.X)
-			sanitized = strings.ToLower(sanitized)
-
-			words := strings.Split(sanitized, " ")
+			words := b.tokenize(sanitized)
 
 			C := int(point.Y)
 
@@ -423,6 +434,13 @@ func (b *NaiveBayes) UpdateStream(stream chan base.TextDatapoint) {
 // text sanitization transformation function
 func (b *NaiveBayes) UpdateSanitize(sanitize func(rune) bool) {
 	b.sanitize = transform.RemoveFunc(sanitize)
+}
+
+// UpdateTokenizer updates NaiveBayes model's tokenizer function.
+// The default implementation will convert the input to lower
+// case and split on the space character.
+func (b *NaiveBayes) UpdateTokenizer(tokenizer Tokenizer) {
+	b.tokenize = tokenizer
 }
 
 // String implements the fmt interface for clean printing. Here
