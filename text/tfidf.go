@@ -3,7 +3,6 @@ package text
 import (
 	"math"
 	"sort"
-	"strings"
 
 	"golang.org/x/text/transform"
 )
@@ -81,7 +80,7 @@ func (f Frequencies) Swap(i, j int) {
 // this is calculated
 func (t *TFIDF) TFIDF(word string, sentence string) float64 {
 	sentence, _, _ = transform.String(t.sanitize, sentence)
-	document := strings.Split(strings.ToLower(sentence), " ")
+	document := t.tokenize(sentence)
 
 	return t.TermFrequency(word, document) * t.InverseDocumentFrequency(word)
 }
@@ -96,7 +95,7 @@ func (t *TFIDF) TFIDF(word string, sentence string) float64 {
 // by importance
 func (t *TFIDF) MostImportantWords(sentence string, n int) Frequencies {
 	sentence, _, _ = transform.String(t.sanitize, sentence)
-	document := strings.Split(strings.ToLower(sentence), " ")
+	document := t.tokenize(sentence)
 
 	freq := TermFrequencies(document)
 	for i := range freq {
