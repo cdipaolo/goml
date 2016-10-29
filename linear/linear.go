@@ -30,9 +30,9 @@
 //
 //     // optimization method: Batch Gradient Ascent
 //     // Learning rate: 1e-4
-//     // Regulatization term: 6
+//     // Regularization term: 6
 //     // Max Iterations: 800
-//     // Dataset to learn fron: testX
+//     // Dataset to learn from: testX
 //     // Expected results dataset: testY
 //     model := NewLeastSquares(base.BatchGA, 1e-4, 6, 800, testX, testY)
 //
@@ -66,6 +66,24 @@ import (
 //
 // https://en.wikipedia.org/wiki/Least_squares
 //
+type LeastSquaresRegression interface {
+	UpdateTrainingSet(trainingSet [][]float64, expectedResults []float64) error
+	UpdateLearningRate(a float64)
+	LearningRate() float64
+	Examples() int
+	MaxIterations() int
+	Predict(x []float64, normalize ...bool) ([]float64, error)
+	Learn() error
+	OnlineLearn(errors chan error, dataset chan base.Datapoint, onUpdate func([][]float64), normalize ...bool)
+	String() string
+	Dj(j int) (float64, error)
+	Dij(i int, j int) (float64, error)
+	J() (float64, error)
+	Theta() []float64
+	PersistToFile(path string) error
+	RestoreFromFile(path string) error
+}
+
 // The model uses gradient descent, NOT regular equations.
 type LeastSquares struct {
 	// alpha and maxIterations are used only for
@@ -113,9 +131,9 @@ type LeastSquares struct {
 //
 //     // optimization method: Stochastic Gradient Ascent
 //     // Learning rate: 1e-4
-//     // Regulatization term: 6
+//     // Regularization term: 6
 //     // Max Iterations: 800
-//     // Dataset to learn fron: testX
+//     // Dataset to learn from: testX
 //     // Expected results dataset: testY
 //     model := NewLeastSquares(base.StochasticGA, 1e-4, 6, 800, testX, testY)
 //
@@ -274,7 +292,7 @@ func (l *LeastSquares) Learn() error {
 
 // OnlineLearn runs similar to using a fixed dataset with
 // Stochastic Gradient Descent, but it handles data by
-// passing it as a channal, and returns errors through
+// passing it as a channel, and returns errors through
 // a channel, which lets it run responsive to inputted data
 // from outside the model itself (like using data from the
 // stock market at timed intervals or using realtime data
@@ -558,7 +576,7 @@ func (l *LeastSquares) Dij(i int, j int) (float64, error) {
 }
 
 // J returns the Least Squares cost function of the given linear
-// model. Could be usefull in testing convergance
+// model. Could be useful in testing convergence
 func (l *LeastSquares) J() (float64, error) {
 	var sum float64
 
