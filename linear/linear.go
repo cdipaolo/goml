@@ -71,7 +71,7 @@ type LeastSquares struct {
 	// alpha and maxIterations are used only for
 	// GradientAscent during learning. If maxIterations
 	// is 0, then GradientAscent will run until the
-	// algorithm detects convergance.
+	// algorithm detects convergence.
 	//
 	// regularization is used as the regularization
 	// term to avoid overfitting within regression.
@@ -113,9 +113,9 @@ type LeastSquares struct {
 //
 //     // optimization method: Stochastic Gradient Ascent
 //     // Learning rate: 1e-4
-//     // Regulatization term: 6
+//     // Regularization term: 6
 //     // Max Iterations: 800
-//     // Dataset to learn fron: testX
+//     // Dataset to learn from: testX
 //     // Expected results dataset: testY
 //     model := NewLeastSquares(base.StochasticGA, 1e-4, 6, 800, testX, testY)
 //
@@ -274,7 +274,7 @@ func (l *LeastSquares) Learn() error {
 
 // OnlineLearn runs similar to using a fixed dataset with
 // Stochastic Gradient Descent, but it handles data by
-// passing it as a channal, and returns errors through
+// passing it as a channel, and returns errors through
 // a channel, which lets it run responsive to inputted data
 // from outside the model itself (like using data from the
 // stock market at timed intervals or using realtime data
@@ -558,7 +558,7 @@ func (l *LeastSquares) Dij(i int, j int) (float64, error) {
 }
 
 // J returns the Least Squares cost function of the given linear
-// model. Could be usefull in testing convergance
+// model. Could be useful in testing convergence
 func (l *LeastSquares) J() (float64, error) {
 	var sum float64
 
