@@ -73,7 +73,7 @@ func TestExampleClassificationShouldPass1(t *testing.T) {
 	assert.EqualValues(t, 0, class, "Class should be 0")
 	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is negative - Given %v", p)
 
-	class, p = model.Probability("Love the CiTy")
+	class, p = model.Probability("love the CiTy")
 	assert.EqualValues(t, 1, class, "Class should be 1")
 	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
 }
@@ -357,61 +357,47 @@ func TestPersistNaiveBayesShouldPass1(t *testing.T) {
 	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
 }
 
-func TestTokenizer(t *testing.T) {
-	stream := make(chan base.TextDatapoint, 100)
-	errors := make(chan error)
-
-	// This is a somewhat contrived test case since splitting on commas is
-	// probably not very useful, but it is designed to purely test the
-	// tokenizer. A more useful, but too complicated test case would be to use
-	// a tokenizer that does something like porter stemming.
-	model := NewNaiveBayes(stream, 3, func(rune) bool {
-		// do not filter out commas
-		return false
-	})
-	model.UpdateTokenizer(func(input string) []string {
-		return strings.Split(strings.ToLower(input), ",")
-	})
-
-	go model.OnlineLearn(errors)
-
-	stream <- base.TextDatapoint{
-		X: "I,love,the,city",
-		Y: 1,
+func TestSimpleTokenizer(t *testing.T) {
+	// now you can predict like normal
+	type test struct {
+		input  string
+		output []string
 	}
-
-	stream <- base.TextDatapoint{
-		X: "I,hate,Los,Angeles",
-		Y: 0,
+	spaces := SimpleTokenizer{SplitOn: " "}
+	commas := SimpleTokenizer{SplitOn: ","}
+	spaceTests := []test{
+		test{input: "My,mo ther,is,in,Los,Angeles", output: []string{"my,mo", "ther,is,in,los,angeles"}},
+		test{input: "Mother,Los,Angeles", output: []string{"mother,los,angeles"}},
+		test{input: "Love the	CiTy", output: []string{"love", "the	city"}},
+		// there is one tab in the input, and one in the output fwiw
 	}
-
-	stream <- base.TextDatapoint{
-		X: "My,mother,is,not,a,nice,lady",
-		Y: 0,
+	commaTests := []test{
+		test{input: "My,mo~~~ther,is,in,Los,Angeles", output: []string{"my", "mo~~~ther", "is", "in", "los", "angeles"}},
+		test{input: "Mother,Los,Angeles", output: []string{"mother", "los", "angeles"}},
+		test{input: "Love,the,CiTy", output: []string{"love", "the", "city"}},
+		test{input: "Love	the	CiTy", output: []string{"love	the	city"}},
 	}
-
-	close(stream)
-
-	for {
-		err, more := <-errors
-		if more {
-			fmt.Printf("Error passed: %v", err)
-		} else {
-			// training is done!
-			break
+	for _, testCase := range spaceTests {
+		if !equalStringSlices(testCase.output, spaces.Tokenize(testCase.input)) {
+			t.Errorf("incorrectly tokenized a sentence, got %s, want %s\n", spaces.Tokenize(testCase.input), testCase.output)
+		}
+	}
+	for _, testCase := range commaTests {
+		if !equalStringSlices(testCase.output, commas.Tokenize(testCase.input)) {
+			t.Errorf("incorrectly tokenized a sentence, got %s, want %s\n", commas.Tokenize(testCase.input), testCase.output)
 		}
 	}
 
-	// now you can predict like normal
-	class := model.Predict("My,mo~~~ther,is,in,Los,Angeles") // 0
-	assert.EqualValues(t, 0, class, "Class should be 0")
+}
 
-	// test small document classification
-	class, p := model.Probability("Mother,Los,Angeles")
-	assert.EqualValues(t, 0, class, "Class should be 0")
-	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is negative - Given %v", p)
-
-	class, p = model.Probability("Love,the,CiTy")
-	assert.EqualValues(t, 1, class, "Class should be 1")
-	assert.True(t, p > 0.75, "There should be a greater than 75 percent chance the document is positive - Given %v", p)
+func equalStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, str := range a {
+		if str != b[i] {
+			return false
+		}
+	}
+	return true
 }

@@ -158,7 +158,7 @@ type NaiveBayes struct {
 
 	// tokenizer is used by a model
 	// to split the input into tokens
-	tokenize Tokenizer
+	Tokenizer Tokenizer `json:"tokenizer"`
 
 	// Output is the io.Writer used for logging
 	// and printing. Defaults to os.Stdout.
@@ -167,10 +167,24 @@ type NaiveBayes struct {
 
 // Tokenizer accepts a sentence as input and breaks
 // it down into a slice of tokens
-type Tokenizer func(string) []string
+type Tokenizer interface {
+	Tokenize(string) []string
+}
 
-func spaceTokenizer(input string) []string {
-	return strings.Split(strings.ToLower(input), " ")
+// SimpleTokenizer splits sentences
+// into tokens delimited by its
+// SplitOn string – space, for example
+type SimpleTokenizer struct {
+	SplitOn string
+}
+
+// Tokenize splits input sentences into a lowecase slice
+// of strings. The tokenizer's SlitOn string is used as a
+// delimiter and it
+func (t *SimpleTokenizer) Tokenize(sentence string) []string {
+	// is the tokenizer really the best place to be making
+	// everything lowercase? is this really a sanitizaion func?
+	return strings.Split(strings.ToLower(sentence), t.SplitOn)
 }
 
 // concurrentMap allows concurrency-friendly map
@@ -246,9 +260,9 @@ func NewNaiveBayes(stream <-chan base.TextDatapoint, classes uint8, sanitize fun
 		Count:         make([]uint64, classes),
 		Probabilities: make([]float64, classes),
 
-		sanitize: transform.RemoveFunc(sanitize),
-		stream:   stream,
-		tokenize: spaceTokenizer,
+		sanitize:  transform.RemoveFunc(sanitize),
+		stream:    stream,
+		Tokenizer: &SimpleTokenizer{SplitOn: " "},
 
 		Output: os.Stdout,
 	}
@@ -262,7 +276,7 @@ func (b *NaiveBayes) Predict(sentence string) uint8 {
 	sums := make([]float64, len(b.Count))
 
 	sentence, _, _ = transform.String(b.sanitize, sentence)
-	words := b.tokenize(sentence)
+	words := b.Tokenizer.Tokenize(sentence)
 	for _, word := range words {
 		w, ok := b.Words.Get(word)
 		if !ok {
@@ -313,7 +327,7 @@ func (b *NaiveBayes) Probability(sentence string) (uint8, float64) {
 	}
 
 	sentence, _, _ = transform.String(b.sanitize, sentence)
-	words := b.tokenize(sentence)
+	words := b.Tokenizer.Tokenize(sentence)
 	for _, word := range words {
 		w, ok := b.Words.Get(word)
 		if !ok {
@@ -366,7 +380,7 @@ func (b *NaiveBayes) OnlineLearn(errors chan<- error) {
 		if more {
 			// sanitize and break up document
 			sanitized, _, _ := transform.String(b.sanitize, point.X)
-			words := b.tokenize(sanitized)
+			words := b.Tokenizer.Tokenize(sanitized)
 
 			C := int(point.Y)
 
@@ -440,7 +454,7 @@ func (b *NaiveBayes) UpdateSanitize(sanitize func(rune) bool) {
 // The default implementation will convert the input to lower
 // case and split on the space character.
 func (b *NaiveBayes) UpdateTokenizer(tokenizer Tokenizer) {
-	b.tokenize = tokenizer
+	b.Tokenizer = tokenizer
 }
 
 // String implements the fmt interface for clean printing. Here
