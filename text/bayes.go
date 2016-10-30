@@ -72,7 +72,9 @@ Example Online Naive Bayes Text Classifier (multiclass):
 package text
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -491,25 +493,41 @@ func (b *NaiveBayes) PersistToFile(path string) error {
 }
 
 // Restore takes the bytes of a NaiveBayes model and
-// restores a model to it. This would be useful if
-// training a model and saving it into a project
-// using go-bindata (look it up) so you don't have
-// to persist a large file and deal with paths on
-// a production system. This option is included
+// restores a model to it. It defaults the sanitizer
+// to base.OnlyWordsAndNumbers and the tokenizer to
+// to a SimpleTokenizer that splits on spaces.
+//
+// This would be useful if training a model and saving
+// it into a project using go-bindata (look it up) so
+// you don't have to persist a large file and deal with
+// paths on a production system. This option is included
 // in text models vs. others because the text models
-// usually have much larger storage requirements
-func (b *NaiveBayes) Restore(bytes []byte) error {
-	err := json.Unmarshal(bytes, &b)
+// usually have much larger storage requirements.
+func (b *NaiveBayes) Restore(data []byte) error {
+	return b.RestoreWithFuncs(bytes.NewReader(data), base.OnlyWordsAndNumbers, &SimpleTokenizer{SplitOn: " "})
+}
+
+// RestoreWithFuncs takes raw JSON data of a model and
+// restores a model from it. The tokenizer and sanitizer
+// passed in will be assigned to the restored model.
+func (b *NaiveBayes) RestoreWithFuncs(data io.Reader, sanitizer func(rune) bool, tokenizer Tokenizer) error {
+	if b == nil {
+		return errors.New("Cannot restore a model to a nil pointer")
+	}
+	err := json.NewDecoder(data).Decode(b)
 	if err != nil {
 		return err
 	}
-
+	b.sanitize = transform.RemoveFunc(sanitizer)
+	b.Tokenizer = tokenizer
 	return nil
 }
 
 // RestoreFromFile takes in a path to a parameter vector theta
 // and assigns the model it's operating on's parameter vector
-// to that.
+// to that. The only parameters not in the vector are the sanitization
+// and tokenization functions which default to base.OnlyWordsAndNumbers
+// and SimpleTokenizer{SplitOn: " "}
 //
 // The path must ba an absolute path or a path from the current
 // directory
@@ -525,8 +543,7 @@ func (b *NaiveBayes) RestoreFromFile(path string) error {
 	if err != nil {
 		return err
 	}
-
-	err = json.Unmarshal(bytes, &b)
+	err = b.Restore(bytes)
 	if err != nil {
 		return err
 	}
