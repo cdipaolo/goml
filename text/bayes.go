@@ -125,7 +125,7 @@ make this calculation more computer-practical
 (multiplying a bunch of probabilities on [0,1]
 will always result in a very small number
 which could easily underflow the float value):
-	Class(x) = argmax_c{log(P(y = c)) + ΣP(x|y = c)}
+	Class(x) = argmax_c{log(P(y = c)) + Σ log(P(x|y = c)0}
 Much better. That's our model!
 */
 type NaiveBayes struct {
