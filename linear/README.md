@@ -39,10 +39,7 @@ for i := -10; i < 10; i++ {
 // set the max iteration cap for gradient
 //     descent to be 1000/1e3 iterations
 // and finally pass in the data
-model, err := linear.NewLeastSquares(base.StochasticGA, 1e-4, 13.06, 1e3, threeDLineX, threeDLineY)
-if err != nil {
-    panic("Your training set (either x or y) was nil/zero length")
-}
+model := linear.NewLeastSquares(base.StochasticGA, 1e-4, 13.06, 1e3, threeDLineX, threeDLineY)
 
 // learn
 err = model.Learn()
