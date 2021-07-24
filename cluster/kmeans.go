@@ -518,7 +518,7 @@ func (k *KMeans) OnlineLearn(errors chan error, dataset chan base.Datapoint, onU
 
 		if more {
 			if len(point.X) != features {
-				errors <- fmt.Errorf("ERROR: point.X must have the same dimensions as clusters (len %v). Point: %v", point)
+				errors <- fmt.Errorf("ERROR: point.X must have the same dimensions as clusters (len %v). Point: %v", centroids, point)
 			}
 
 			minDiff := diff(point.X, k.Centroids[0])
